@@ -1,0 +1,23 @@
+# Environment variables
+.env
+.env.*
+
+# Node modules
+node_modules/
+
+# Flutter/Dart
+.dart_tool/
+.packages
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+*.log
+
+# IDEs
+.idea/
+.vscode/
+*.iml
+
+# OS files
+.DS_Store
+Thumbs.db
