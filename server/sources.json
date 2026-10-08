@@ -1,0 +1,176 @@
+{
+  "allowlistedDomains": [
+    "gov.in",
+    "nic.in",
+    "tn.gov.in",
+    "cra.tn.gov.in",
+    "www.cra.tn.gov.in",
+    "tnsocialwelfare.tn.gov.in",
+    "tnesevai.tn.gov.in",
+    "umis.tn.gov.in",
+    "naanmudhalvan.tn.gov.in",
+    "portal.naanmudhalvan.tn.gov.in",
+    "cmchistn.com",
+    "www.cmchistn.com",
+    "kmut.tn.gov.in",
+    "myscheme.gov.in",
+    "skilldevelopment.tn.gov.in",
+    "portal.skilldevelopment.tn.gov.in",
+    "tnnhis2018.in",
+    "www.tnnhis2018.in",
+    "tnadtwelfare.tn.gov.in",
+    "bcmbcmw.tn.gov.in",
+    "scd.tn.gov.in",
+    "tnrural.tn.gov.in",
+    "tnagriculture.in",
+    "www.tnagriculture.in",
+    "tnskill.tn.gov.in",
+    "makkalteadi.tn.gov.in"
+  ],
+  "politeness": {
+    "userAgent": "TNSchemesBot/1.0 (+https://tn.gov.in/schemes-checker)",
+    "requestDelayMs": 3000,
+    "maxDepth": 2,
+    "maxPagesPerRun": 20,
+    "timeoutMs": 25000
+  },
+  "officialPages": [
+    {
+      "name": "Revenue Administration Pensions",
+      "url": "https://cra.tn.gov.in/",
+      "domain": "cra.tn.gov.in",
+      "schemes": [
+        "Old Age Pension (IGNOAPS / TN)",
+        "Destitute Widow Pension",
+        "Destitute / Deserted Wives Pension",
+        "Unmarried Poor Women Pension",
+        "Differently Abled Pension (DAPS)"
+      ]
+    },
+    {
+      "name": "Social Welfare & Women Empowerment Department",
+      "url": "https://tnsocialwelfare.tn.gov.in/en/specilisationswoman-welfare/pudhumai-penn",
+      "domain": "tnsocialwelfare.tn.gov.in",
+      "schemes": [
+        "Pudhumai Penn"
+      ]
+    },
+    {
+      "name": "e-Sevai Portal",
+      "url": "https://www.tnesevai.tn.gov.in/",
+      "domain": "tnesevai.tn.gov.in",
+      "schemes": [
+        "e-Sevai Application Channel"
+      ]
+    },
+    {
+      "name": "CMCHIS Official Portal",
+      "url": "https://cmchistn.com/",
+      "domain": "cmchistn.com",
+      "schemes": [
+        "CM Comprehensive Health Insurance (CMCHIS)"
+      ]
+    },
+    {
+      "name": "Kalaignar Magalir Urimai Thogai Portal",
+      "url": "https://kmut.tn.gov.in",
+      "domain": "kmut.tn.gov.in",
+      "schemes": [
+        "Kalaignar Magalir Urimai Thogai"
+      ],
+      "lastErrorReason": "Unreachable: tls_expired (HTTP ERR)"
+    },
+    {
+      "name": "Naan Mudhalvan Portal",
+      "url": "https://skilldevelopment.tn.gov.in/",
+      "domain": "naanmudhalvan.tn.gov.in",
+      "schemes": [
+        "Naan Mudhalvan"
+      ]
+    },
+    {
+      "name": "UMIS Portal (Tamil Pudhalvan)",
+      "url": "https://umis.tn.gov.in",
+      "domain": "umis.tn.gov.in",
+      "schemes": [
+        "Tamil Pudhalvan"
+      ],
+      "lastErrorReason": "Unreachable: timeout (HTTP ERR)"
+    },
+    {
+      "name": "MyScheme National Portal (Tamil Nadu)",
+      "url": "https://www.myscheme.gov.in/search/state/Tamil%20Nadu",
+      "domain": "myscheme.gov.in",
+      "schemes": [
+        "General TN Schemes"
+      ]
+    },
+    {
+      "name": "Adi Dravidar and Tribal Welfare",
+      "url": "https://tnadtwelfare.tn.gov.in/",
+      "domain": "tnadtwelfare.tn.gov.in",
+      "schemes": [
+        "ADW Education and Housing Schemes"
+      ]
+    },
+    {
+      "name": "BC, MBC & Minorities Welfare",
+      "url": "https://bcmbcmw.tn.gov.in/",
+      "domain": "bcmbcmw.tn.gov.in",
+      "schemes": [
+        "BC/MBC Welfare Schemes"
+      ]
+    },
+    {
+      "name": "Differently Abled Welfare",
+      "url": "https://www.scd.tn.gov.in/",
+      "domain": "scd.tn.gov.in",
+      "schemes": [
+        "Differently Abled Assistance"
+      ]
+    },
+    {
+      "name": "TN Government Schemes Directory",
+      "url": "https://www.tn.gov.in/scheme/department_wise",
+      "domain": "tn.gov.in",
+      "schemes": [
+        "All Department Schemes"
+      ]
+    },
+    {
+      "name": "Rural Development and Panchayat Raj",
+      "url": "https://tnrural.tn.gov.in/",
+      "domain": "tnrural.tn.gov.in",
+      "schemes": [
+        "Mahatma Gandhi NREGS",
+        "PMAY(G)"
+      ]
+    },
+    {
+      "name": "Agriculture Department (Mannvalam)",
+      "url": "https://www.tnagriculture.in/mannvalam/",
+      "domain": "tnagriculture.in",
+      "schemes": [
+        "Farmer Subsidies and Soil Health"
+      ]
+    },
+    {
+      "name": "Makkalai Thedi Maruthuvam",
+      "url": "https://makkalteadi.tn.gov.in/",
+      "domain": "makkalteadi.tn.gov.in",
+      "schemes": [
+        "Doorstep Healthcare Delivery"
+      ]
+    }
+  ],
+  "excludedSourcesReport": [
+    {
+      "url": "http://random-news-blog.com/tn-schemes",
+      "reason": "Not an official government domain (not in allowlist: .gov.in, .nic.in, .tn.gov.in, cmchistn.com)."
+    },
+    {
+      "url": "https://private-agent-apply.com/pension",
+      "reason": "Third-party private website attempting to charge fees for government forms."
+    }
+  ]
+}

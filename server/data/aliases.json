@@ -1,0 +1,12 @@
+{
+  "OAP": ["Old Age Pension", "IGNOAPS", "முதியோர் உதவித்தொகை", "muthiyor pension"],
+  "widow pension": ["Destitute Widow Pension", "விதவை உதவித்தொகை"],
+  "free bus": ["Vidiyal Payanam", "விடியல் பயணம்", "மகளிர் இலவச பேருந்து"],
+  "unemployment allowance": ["வேலையில்லா உதவித்தொகை", "Unemployment Assistance Scheme", "Youth Unemployment Allowance"],
+  "CMCHIS": ["Chief Minister's Comprehensive Health Insurance Scheme", "முதலமைச்சரின் விரிவான மருத்துவ காப்பீட்டுத் திட்டம்", "health insurance"],
+  "NHIS": ["New Health Insurance Scheme", "pensioner health insurance"],
+  "TAPS": ["Tamil Nadu Pensioners Scheme", "Government employee pension"],
+  "DAPS": ["Differently Abled Pension", "ஊனமுற்றோர் உதவித்தொகை", "மாற்றுத்திறனாளி உதவித்தொகை"],
+  "Pudhumai Penn": ["pudhumai pen", "pudumai penn", "புதுமைப்பெண்", "புதுமை பெண்", "scholarship for girls", "higher education for girls"],
+  "Tamil Pudhalvan": ["தமிழ் புதல்வன்", "tamil pudalvan", "scholarship for boys"]
+}
