@@ -35,7 +35,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
 
     expect(find.byType(MainScreen), findsOneWidget);
-    expect(find.text('TN Schemes Finder'), findsOneWidget);
+    expect(find.text('Thittam'), findsOneWidget);
     expect(find.text('Dashboard'), findsOneWidget);
     expect(find.text('My Profile'), findsOneWidget);
     expect(find.text('Scheme Finder'), findsOneWidget);
