@@ -46,7 +46,8 @@ void main() {
       await tester.pumpWidget(createTestWidget(const WelcomeScreen(), authProvider: auth));
       await tester.pump(const Duration(milliseconds: 100));
 
-      expect(find.text('TN Schemes & Pensions Finder'), findsOneWidget);
+      expect(find.text('Thittam'), findsOneWidget);
+      expect(find.text('TN Scheme & Pension Finder'), findsOneWidget);
       expect(find.byKey(const Key('welcome_login_btn')), findsOneWidget);
       expect(find.byKey(const Key('welcome_signup_btn')), findsOneWidget);
       expect(find.byKey(const Key('welcome_guest_btn')), findsOneWidget);
@@ -130,6 +131,16 @@ void main() {
 
       expect(find.byType(SignUpScreen), findsOneWidget);
     });
+
+    testWidgets('renders continue without an account button on sign up screen', (WidgetTester tester) async {
+      final auth = AuthProvider();
+      await tester.pumpWidget(createTestWidget(const SignUpScreen(), authProvider: auth));
+      await tester.pump(const Duration(milliseconds: 100));
+
+      final guestBtn = find.byKey(const Key('signup_guest_btn'));
+      expect(guestBtn, findsOneWidget);
+      expect(find.text('Continue without an account'), findsOneWidget);
+    });
   });
 
   group('LogInScreen Form Validation', () {
@@ -182,6 +193,16 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
 
       expect(forgotPasswordTapped, isTrue);
+    });
+
+    testWidgets('renders continue without an account button', (WidgetTester tester) async {
+      final auth = AuthProvider();
+      await tester.pumpWidget(createTestWidget(const LogInScreen(), authProvider: auth));
+      await tester.pump(const Duration(milliseconds: 100));
+
+      final guestBtn = find.byKey(const Key('login_guest_btn'));
+      expect(guestBtn, findsOneWidget);
+      expect(find.text('Continue without an account'), findsOneWidget);
     });
   });
 

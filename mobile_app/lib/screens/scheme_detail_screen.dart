@@ -589,12 +589,14 @@ class SchemeDetailScreen extends StatelessWidget {
                       children: [
                         Icon(Icons.help_outline, color: Colors.amber.shade900, size: 20),
                         const SizedBox(width: 8),
-                        Text(
-                          'What to do if you couldn\'t get the benefit / Application delayed?',
-                          style: TextStyle(
-                            fontSize: 14.5,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.amber.shade900,
+                        Expanded(
+                          child: Text(
+                            'What to do if you couldn\'t get the benefit / Application delayed?',
+                            style: TextStyle(
+                              fontSize: 14.5,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.amber.shade900,
+                            ),
                           ),
                         ),
                       ],

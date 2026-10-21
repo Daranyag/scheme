@@ -183,7 +183,7 @@ class _FinderScreenState extends State<FinderScreen> with SingleTickerProviderSt
           ),
 
           SizedBox(
-            height: 220,
+            height: 250,
             child: TabBarView(
               controller: _tabController,
               children: [
@@ -220,9 +220,10 @@ class _FinderScreenState extends State<FinderScreen> with SingleTickerProviderSt
                 ),
 
                 // Tab 2: Link or Text Input
-                Padding(
+                SingleChildScrollView(
                   padding: const EdgeInsets.symmetric(vertical: 12.0),
                   child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       TextField(
                         controller: _urlController,
@@ -246,6 +247,7 @@ class _FinderScreenState extends State<FinderScreen> with SingleTickerProviderSt
                       const SizedBox(height: 8),
                       Wrap(
                         spacing: 8,
+                        runSpacing: 4,
                         children: [
                           'pudhumai penn', 'muthiyor pension', 'CMCHIS', 'OAP', 'free bus'
                         ].map((chipText) => ActionChip(

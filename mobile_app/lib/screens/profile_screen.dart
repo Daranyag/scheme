@@ -684,6 +684,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         children: [
           Expanded(
             child: DropdownButtonFormField<String>(
+              isExpanded: true,
               initialValue: _profile.areaType,
               decoration: const InputDecoration(
                 labelText: 'Area type',
@@ -739,6 +740,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   List<Widget> _buildFamilyFields() {
     return [
       DropdownButtonFormField<String>(
+        isExpanded: true,
         initialValue: _profile.marital,
         decoration: const InputDecoration(
           labelText: 'Marital status',
@@ -762,6 +764,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       // Married follow-ups
       if (_profile.marital == 'married') ...[
         DropdownButtonFormField<bool>(
+          isExpanded: true,
           initialValue: _profile.spouseLivingWith,
           decoration: const InputDecoration(
             labelText: 'Is your spouse living with you?',
@@ -788,6 +791,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
         const SizedBox(height: 12),
         DropdownButtonFormField<bool>(
+          isExpanded: true,
           initialValue: _profile.daughterUnder18,
           decoration: const InputDecoration(
             labelText: 'Do you have a daughter below 18?',
@@ -806,6 +810,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         // Pregnancy & Maternity follow-ups (for women)
         if (_profile.gender == 'F' || _profile.gender == 'Female') ...[
           DropdownButtonFormField<bool>(
+            isExpanded: true,
             initialValue: _profile.isPregnant,
             decoration: const InputDecoration(
               labelText: 'Are you currently pregnant?',
@@ -823,6 +828,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           const SizedBox(height: 12),
           DropdownButtonFormField<bool>(
+            isExpanded: true,
             initialValue: _profile.hasNewborn,
             decoration: const InputDecoration(
               labelText: 'Have you recently had a child (baby aged 0–1 year)?',
@@ -841,6 +847,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           if (_profile.hasNewborn == true || _profile.isPregnant == true) ...[
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
+              isExpanded: true,
               initialValue: _profile.deliveryPlace,
               decoration: const InputDecoration(
                 labelText: 'Delivery hospital / Planned hospital',
@@ -866,6 +873,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       // Widowed follow-ups
       if (_profile.marital == 'widowed') ...[
         DropdownButtonFormField<bool>(
+          isExpanded: true,
           initialValue: _profile.deathCertAvailable,
           decoration: const InputDecoration(
             labelText: "Is your husband's death certificate available?",
@@ -882,6 +890,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
         const SizedBox(height: 12),
         DropdownButtonFormField<bool>(
+          isExpanded: true,
           initialValue: _profile.familyPension,
           decoration: const InputDecoration(
             labelText: 'Do you receive a family pension?',
@@ -912,6 +921,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       // Deserted / divorced follow-ups
       if (_profile.marital == 'deserted') ...[
         DropdownButtonFormField<String>(
+          isExpanded: true,
           initialValue: _profile.separatedYears,
           decoration: const InputDecoration(
             labelText: 'Legally divorced or separated for > 5 years?',
@@ -933,6 +943,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       // Unmarried & Age 50+ follow-up
       if (_profile.marital == 'unmarried' && (_profile.age != null && _profile.age! >= 50)) ...[
         DropdownButtonFormField<bool>(
+          isExpanded: true,
           initialValue: _profile.unmarriedFamilySupport,
           decoration: const InputDecoration(
             labelText: 'Do you have any family support?',
@@ -975,6 +986,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       // Permanent resident of Tamil Nadu?
       DropdownButtonFormField<bool>(
+        isExpanded: true,
         initialValue: _profile.isTnResident,
         decoration: const InputDecoration(
           labelText: 'Permanent resident of Tamil Nadu? (Optional)',
@@ -992,6 +1004,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       const SizedBox(height: 12),
 
       DropdownButtonFormField<String>(
+        isExpanded: true,
         initialValue: _profile.rationCardType,
         decoration: const InputDecoration(
           labelText: 'Ration card type',
@@ -1060,6 +1073,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       if (_profile.role == 'School student') ...[
         DropdownButtonFormField<String>(
+          isExpanded: true,
           initialValue: _profile.classStudied,
           decoration: const InputDecoration(
             labelText: 'Class (1 to 12)',
@@ -1101,6 +1115,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       if (_profile.role == 'Completed studies' || _profile.role == 'Not studying') ...[
         DropdownButtonFormField<String>(
+          isExpanded: true,
           initialValue: _profile.highestQual,
           decoration: const InputDecoration(
             labelText: 'Highest qualification completed',
@@ -1147,6 +1162,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       if (isStudent) ...[
         DropdownButtonFormField<String>(
+          isExpanded: true,
           initialValue: _profile.institutionType,
           decoration: const InputDecoration(
             labelText: 'Type of institution',
@@ -1188,6 +1204,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         const SizedBox(height: 12),
 
         DropdownButtonFormField<String>(
+          isExpanded: true,
           initialValue: _profile.courseMode,
           decoration: const InputDecoration(
             labelText: 'Regular course or distance / open university?',
@@ -1205,6 +1222,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         const SizedBox(height: 12),
 
         DropdownButtonFormField<bool>(
+          isExpanded: true,
           initialValue: _profile.firstGraduate,
           decoration: const InputDecoration(
             labelText: 'First graduate in your family?',
@@ -1222,6 +1240,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         const SizedBox(height: 12),
 
         DropdownButtonFormField<bool>(
+          isExpanded: true,
           initialValue: _profile.hostelStay,
           decoration: const InputDecoration(
             labelText: 'Do you stay in a hostel?',
@@ -1403,6 +1422,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   if (_profile.isManufacturer) ...[
                     const SizedBox(height: 8),
                     DropdownButtonFormField<String>(
+                      isExpanded: true,
                       initialValue: _profile.enterpriseType ?? 'Micro',
                       decoration: const InputDecoration(
                         labelText: 'Enterprise Category',
@@ -1428,6 +1448,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
         if (_profile.workStatus == 'Farmer') ...[
           DropdownButtonFormField<String>(
+            isExpanded: true,
             initialValue: _profile.farmerType,
             decoration: const InputDecoration(
               labelText: 'Land ownership',
@@ -1445,6 +1466,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           const SizedBox(height: 12),
           DropdownButtonFormField<bool>(
+            isExpanded: true,
             initialValue: _profile.isFarming,
             decoration: const InputDecoration(
               labelText: 'Are you actively farming and cultivating crops?',
@@ -1546,6 +1568,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       if (_profile.workStatus == 'Retired') ...[
         DropdownButtonFormField<String>(
+          isExpanded: true,
           initialValue: _profile.retiredFrom,
           decoration: const InputDecoration(
             labelText: 'Retired from',
@@ -1563,6 +1586,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
         const SizedBox(height: 12),
         DropdownButtonFormField<bool>(
+          isExpanded: true,
           initialValue: _profile.receivesPension,
           decoration: const InputDecoration(
             labelText: 'Do you receive a pension?',
@@ -1611,6 +1635,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       const SizedBox(height: 12),
 
       DropdownButtonFormField<String>(
+        isExpanded: true,
         initialValue: (() {
           final val = _profile.incomeRangeBand;
           if (val == null) return null;
@@ -1667,6 +1692,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               const SizedBox(height: 8),
               DropdownButtonFormField<bool>(
+                isExpanded: true,
                 initialValue: _profile.interestedInLoan,
                 decoration: const InputDecoration(
                   labelText: 'Are you interested in applying for a government / bank loan?',
@@ -1821,6 +1847,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 const SizedBox(height: 8),
                 DropdownButtonFormField<bool>(
+                  isExpanded: true,
                   initialValue: _profile.isFarming,
                   decoration: const InputDecoration(
                     labelText: 'Are you actively farming on your land?',
@@ -1896,6 +1923,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       const SizedBox(height: 12),
 
       DropdownButtonFormField<String>(
+        isExpanded: true,
         initialValue: _profile.homeOwnership,
         decoration: const InputDecoration(
           labelText: 'Owns a house',
@@ -1915,6 +1943,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       const SizedBox(height: 12),
 
       DropdownButtonFormField<String>(
+        isExpanded: true,
         initialValue: (() {
           final val = _profile.fixedAssetsBand;
           if (val == null) return null;
@@ -1976,6 +2005,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       const SizedBox(height: 12),
 
       DropdownButtonFormField<bool>(
+        isExpanded: true,
         initialValue: _profile.disabilityCertAvailable,
         decoration: const InputDecoration(
           labelText: 'Disability certificate available?',

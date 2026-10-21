@@ -3,8 +3,10 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../main.dart';
 import '../providers/auth_provider.dart';
+import '../widgets/app_logo.dart';
 import '../widgets/server_address_dialog.dart';
 import 'privacy_note_dialog.dart';
+import 'login_screen.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -92,6 +94,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                const Center(
+                  child: AppLogo(
+                    size: 72,
+                    iconSize: 36,
+                    borderRadius: 18,
+                  ),
+                ),
+                const SizedBox(height: 20),
                 Text(
                   'Create an Account',
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
@@ -293,6 +303,65 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         : const Text('Create Account', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                   ),
                 ),
+                const SizedBox(height: 24),
+
+                // Link to Log In
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      'Already have an account? ',
+                      style: TextStyle(color: Colors.grey.shade700),
+                    ),
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const LogInScreen(),
+                          ),
+                        );
+                      },
+                      child: Text(
+                        'Log in',
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.primary,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+
+                // Continue without an account (Guest mode)
+                Center(
+                  child: TextButton(
+                    key: const Key('signup_guest_btn'),
+                    onPressed: () async {
+                      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+                      await authProvider.setGuestMode();
+                      if (context.mounted) {
+                        Navigator.pushAndRemoveUntil(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const MainScreen(initialIndex: 1, showWelcomeBanner: true),
+                          ),
+                          (route) => false,
+                        );
+                      }
+                    },
+                    child: Text(
+                      'Continue without an account',
+                      style: TextStyle(
+                        color: Colors.grey[700],
+                        fontSize: 15,
+                        decoration: TextDecoration.underline,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
               ],
             ),
           ),

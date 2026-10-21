@@ -4,6 +4,7 @@ import '../main.dart';
 import '../models/user_profile.dart';
 import '../providers/auth_provider.dart';
 import '../providers/language_provider.dart';
+import '../widgets/app_logo.dart';
 import '../widgets/server_address_dialog.dart';
 import 'signup_screen.dart';
 import 'forgot_password_screen.dart';
@@ -108,6 +109,14 @@ class _LogInScreenState extends State<LogInScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    const Center(
+                      child: AppLogo(
+                        size: 72,
+                        iconSize: 36,
+                        borderRadius: 18,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
                     Text(
                       isTa ? 'மீண்டும் வருக!' : 'Welcome Back',
                       style: Theme.of(context).textTheme.headlineMedium?.copyWith(
@@ -316,6 +325,36 @@ class _LogInScreenState extends State<LogInScreen> {
                         ),
                       ],
                     ),
+                    const SizedBox(height: 16),
+
+                    // Continue without an account (Guest mode)
+                    Center(
+                      child: TextButton(
+                        key: const Key('login_guest_btn'),
+                        onPressed: () async {
+                          final authProvider = Provider.of<AuthProvider>(context, listen: false);
+                          await authProvider.setGuestMode();
+                          if (context.mounted) {
+                            Navigator.pushAndRemoveUntil(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const MainScreen(initialIndex: 1, showWelcomeBanner: true),
+                              ),
+                              (route) => false,
+                            );
+                          }
+                        },
+                        child: Text(
+                          isTa ? 'கணக்கு இல்லாமல் தொடரவும்' : 'Continue without an account',
+                          style: TextStyle(
+                            color: Colors.grey[700],
+                            fontSize: 15,
+                            decoration: TextDecoration.underline,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
                   ],
                 ),
               ),
