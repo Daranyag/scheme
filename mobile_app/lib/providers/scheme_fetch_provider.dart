@@ -19,7 +19,7 @@ class SchemeFetchProvider extends ChangeNotifier {
   int get lastUpdated => _lastUpdated;
   DateTime? get lastFetchCompletedTime => _lastFetchCompletedTime;
 
-  Future<void> startBackgroundFetch() async {
+  Future<void> startBackgroundFetch({int limit = 12}) async {
     if (_isFetching) return;
 
     _isFetching = true;
@@ -29,7 +29,7 @@ class SchemeFetchProvider extends ChangeNotifier {
 
     try {
       final res = await http.post(
-        Uri.parse('${ApiService.baseUrl}/api/data/fetch-official?limit=25'),
+        Uri.parse('${ApiService.baseUrl}/api/data/fetch-official?limit=$limit'),
       );
 
       if (res.statusCode == 200) {

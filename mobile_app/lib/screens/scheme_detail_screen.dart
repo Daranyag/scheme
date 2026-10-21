@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/scheme.dart';
+import '../providers/language_provider.dart';
 import '../services/rule_engine.dart';
 import '../widgets/recently_changed_banner.dart';
 import '../widgets/verification_badge.dart';
+import '../utils/scheme_localizer.dart';
 
 class SchemeDetailScreen extends StatelessWidget {
   final Scheme scheme;
@@ -18,21 +21,25 @@ class SchemeDetailScreen extends StatelessWidget {
   Future<void> _handleLinkClick(BuildContext context, SchemeLink link) async {
     if (link.url.isEmpty) return;
 
+    final isTa = Provider.of<LanguageProvider>(context, listen: false).isTamil;
+
     if (link.hasTlsError) {
       final shouldProceed = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: const Text('Security Warning'),
-          content: const Text("This website's security certificate has a problem. Do not enter personal details until it is fixed."),
+          title: Text(isTa ? 'பாதுகாப்பு எச்சரிக்கை' : 'Security Warning'),
+          content: Text(isTa
+              ? 'இந்த இணையதளத்தின் பாதுகாப்புச் சான்றிதழில் சிக்கல் உள்ளது. சரிசெய்யப்படும் வரை தனிப்பட்ட தகவல்களை உள்ளிட வேண்டாம்.'
+              : "This website's security certificate has a problem. Do not enter personal details until it is fixed."),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(false),
-              child: const Text('Cancel'),
+              child: Text(isTa ? 'ரத்துசெய்' : 'Cancel'),
             ),
             ElevatedButton(
               onPressed: () => Navigator.of(ctx).pop(true),
               style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-              child: const Text('Proceed anyway'),
+              child: Text(isTa ? 'தொடரவும்' : 'Proceed anyway'),
             ),
           ],
         ),
@@ -41,6 +48,7 @@ class SchemeDetailScreen extends StatelessWidget {
       if (shouldProceed != true) return;
     }
 
+    if (!context.mounted) return;
     await _launchUrl(context, link.url);
   }
 
@@ -66,16 +74,29 @@ class SchemeDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const fallbackDefault = 'Not listed in the sources I checked. Ask at your Taluk office or e-Sevai centre.';
-    const fallbackLinks = 'No verified official link found. Search tn.gov.in or ask at an e-Sevai centre.';
+    final isTa = Provider.of<LanguageProvider>(context).isTamil;
+
+    final fallbackDefault = isTa
+        ? 'சரிபார்க்கப்பட்ட அதிகாரப்பூர்வ தகவல்களில் இல்லை. தாலுகா அலுவலகம் அல்லது இ-சேவை மையத்தில் விசாரிக்கவும்.'
+        : 'Not listed in the sources I checked. Ask at your Taluk office or e-Sevai centre.';
+    final fallbackLinks = isTa
+        ? 'சரிபார்க்கப்பட்ட அதிகாரப்பூர்வ இணைப்பு கிடைக்கவில்லை. tn.gov.in இல் தேடவும் அல்லது இ-சேவை மையத்தை அணுகவும்.'
+        : 'No verified official link found. Search tn.gov.in or ask at an e-Sevai centre.';
 
     final bool isEligible = evaluation.status == EligibilityStatus.eligible;
     final bool isVerify = evaluation.status == EligibilityStatus.possiblyEligibleVerify;
 
+    final primaryTitle = isTa
+        ? (scheme.nameTamil.isNotEmpty ? scheme.nameTamil : scheme.name)
+        : scheme.name;
+    final secondaryTitle = isTa
+        ? (scheme.nameTamil.isNotEmpty ? scheme.name : '')
+        : (scheme.nameTamil.isNotEmpty ? scheme.nameTamil : '');
+
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          scheme.name,
+          primaryTitle,
           maxLines: 2,
           softWrap: true,
           overflow: TextOverflow.ellipsis,
@@ -98,7 +119,7 @@ class SchemeDetailScreen extends StatelessWidget {
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
-                  scheme.category.toUpperCase(),
+                  getCategoryName(scheme.category, isTamil: isTa),
                   style: TextStyle(
                     color: Theme.of(context).colorScheme.primary,
                     fontSize: 12,
@@ -109,9 +130,9 @@ class SchemeDetailScreen extends StatelessWidget {
               ),
               const SizedBox(height: 8),
 
-              // Largest, Boldest Name
+              // Largest, Boldest Primary Name (Always shows both Tamil and English)
               Text(
-                scheme.name,
+                primaryTitle,
                 maxLines: 3,
                 softWrap: true,
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
@@ -120,10 +141,10 @@ class SchemeDetailScreen extends StatelessWidget {
                       height: 1.25,
                     ),
               ),
-              if (scheme.nameTamil.isNotEmpty) ...[
+              if (secondaryTitle.isNotEmpty) ...[
                 const SizedBox(height: 4),
                 Text(
-                  scheme.nameTamil,
+                  secondaryTitle,
                   maxLines: 2,
                   softWrap: true,
                   style: TextStyle(
@@ -151,8 +172,10 @@ class SchemeDetailScreen extends StatelessWidget {
                       ),
                       label: Text(
                         isEligible
-                            ? 'Eligible'
-                            : (isVerify ? 'Possibly Eligible (Verify)' : 'Not Eligible'),
+                            ? (isTa ? 'தகுதியுடையது' : 'Eligible')
+                            : (isVerify
+                                ? (isTa ? 'சரிபார்க்க தேவை' : 'Possibly Eligible (Verify)')
+                                : (isTa ? 'தகுதியற்றது' : 'Not Eligible')),
                         style: TextStyle(
                           color: isEligible
                               ? Colors.green[900]
@@ -223,9 +246,9 @@ class SchemeDetailScreen extends StatelessWidget {
                 children: [
                   Icon(Icons.info_outline, size: 20, color: Theme.of(context).colorScheme.primary),
                   const SizedBox(width: 8),
-                  const Text(
-                    'About the Scheme',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  Text(
+                    isTa ? 'திட்டத்தைப் பற்றி' : 'About the Scheme',
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                 ],
               ),
@@ -243,21 +266,38 @@ class SchemeDetailScreen extends StatelessWidget {
                     final String rawDesc = scheme.description.trim();
                     final bool hasCustomDesc = rawDesc.isNotEmpty && rawDesc != scheme.benefit.trim();
 
-                    final String namePart = '${scheme.name}${scheme.nameTamil.isNotEmpty ? ' (${scheme.nameTamil})' : ''}';
-                    final String deptPart = scheme.category.isNotEmpty ? scheme.category : 'Social Welfare and Government';
+                    final String namePart = isTa
+                        ? (scheme.nameTamil.isNotEmpty ? scheme.nameTamil : scheme.name)
+                        : '${scheme.name}${scheme.nameTamil.isNotEmpty ? ' (${scheme.nameTamil})' : ''}';
+                    final String deptPart = isTa
+                        ? getCategoryName(scheme.category, isTamil: true)
+                        : (scheme.category.isNotEmpty ? scheme.category : 'Social Welfare and Government');
 
-                    final List<String> detailSentences = [
-                      if (hasCustomDesc)
-                        rawDesc
-                      else
-                        '$namePart is an established governmental initiative administered by the $deptPart Department of Tamil Nadu.',
-                      'This scheme is specifically formulated to provide targeted welfare, socio-economic upliftment, and direct assistance to eligible residents across the state.',
-                      if (scheme.rules.isNotEmpty || scheme.unmappedCriteria.isNotEmpty)
-                        'Eligible applicants must satisfy specific demographic and departmental guidelines to receive benefits, ensuring support reaches deserving individuals and households.',
-                      if (scheme.howToApply.isNotEmpty)
-                        'Applications and verification processes are conducted systematically through relevant departmental portals, local administrative bodies, or designated government camps.',
-                      'The key objective is to provide accessible social security, transparent distribution of benefits, and sustained support under official government norms.',
-                    ];
+                    final List<String> detailSentences = isTa
+                        ? [
+                            if (hasCustomDesc)
+                              rawDesc
+                            else
+                              '$namePart என்பது தமிழ்நாடு அரசின் $deptPart சார்ந்த அதிகாரப்பூர்வ திட்டமாகும்.',
+                            'இத்திட்டம் மாநிலத்திலுள்ள தகுதியுள்ள பொதுமக்களுக்கு சமூகப் பாதுகாப்பு, பொருளாதார மேம்பாடு மற்றும் நேரடி நல உதவிகளை வழங்குவதற்காக வடிவமைக்கப்பட்டுள்ளது.',
+                            if (scheme.rules.isNotEmpty || scheme.unmappedCriteria.isNotEmpty)
+                              'பயனாளிகள் இத்திட்டத்தின் பலன்களைப் பெற உரிய தகுதி வரம்புகளைப் பூர்த்தி செய்திருக்க வேண்டும்.',
+                            if (scheme.howToApply.isNotEmpty)
+                              'விண்ணப்பங்கள் மற்றும் சரிபார்ப்பு முறையான துறை சார்ந்த இணையதளங்கள் அல்லது உள்ளூர் அரசு அலுவலகங்கள்/இ-சேவை மையங்கள் மூலம் முறையாக செயல்படுத்தப்படுகின்றன.',
+                            'அரசு விதிகளின்படி வெளிப்படையான முறையில் உரிய பயனாளிகளுக்கு உதவித்தொகை மற்றும் சேவைகள் சென்றடைவதே இதன் முக்கிய நோக்கமாகும்.',
+                          ]
+                        : [
+                            if (hasCustomDesc)
+                              rawDesc
+                            else
+                              '$namePart is an established governmental initiative administered by the $deptPart Department of Tamil Nadu.',
+                            'This scheme is specifically formulated to provide targeted welfare, socio-economic upliftment, and direct assistance to eligible residents across the state.',
+                            if (scheme.rules.isNotEmpty || scheme.unmappedCriteria.isNotEmpty)
+                              'Eligible applicants must satisfy specific demographic and departmental guidelines to receive benefits, ensuring support reaches deserving individuals and households.',
+                            if (scheme.howToApply.isNotEmpty)
+                              'Applications and verification processes are conducted systematically through relevant departmental portals, local administrative bodies, or designated government camps.',
+                            'The key objective is to provide accessible social security, transparent distribution of benefits, and sustained support under official government norms.',
+                          ];
 
                     return Text(
                       detailSentences.join('\n\n'),
@@ -277,9 +317,9 @@ class SchemeDetailScreen extends StatelessWidget {
                 children: [
                   Icon(Icons.card_giftcard, size: 20, color: Theme.of(context).colorScheme.primary),
                   const SizedBox(width: 8),
-                  const Text(
-                    'Benefit',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  Text(
+                    isTa ? 'பயன்கள்' : 'Benefit',
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                 ],
               ),
@@ -293,7 +333,9 @@ class SchemeDetailScreen extends StatelessWidget {
                   border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
                 ),
                 child: Text(
-                  scheme.benefit.isNotEmpty ? scheme.benefit : fallbackDefault,
+                  scheme.benefit.isNotEmpty
+                      ? translateBenefit(scheme.benefit, isTamil: isTa)
+                      : fallbackDefault,
                   style: TextStyle(
                     fontSize: 15,
                     height: 1.45,
@@ -306,9 +348,9 @@ class SchemeDetailScreen extends StatelessWidget {
               const SizedBox(height: 20),
 
               // SECTION 2: Why you qualify
-              const Text(
-                'Why you qualify',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              Text(
+                isTa ? 'தகுதிக்கான காரணங்கள்' : 'Why you qualify',
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
               Card(
@@ -334,7 +376,7 @@ class SchemeDetailScreen extends StatelessWidget {
                                   const SizedBox(width: 6),
                                   Expanded(
                                     child: Text(
-                                      item,
+                                      translateCriteria(item, isTamil: isTa),
                                       style: const TextStyle(fontSize: 15, height: 1.4, color: Colors.black87),
                                     ),
                                   ),
@@ -342,9 +384,11 @@ class SchemeDetailScreen extends StatelessWidget {
                               ),
                             )
                         else
-                          const Text(
-                            'General scheme open to eligible Tamil Nadu citizens meeting application requirements.',
-                            style: TextStyle(fontSize: 15, height: 1.4, color: Colors.black87),
+                          Text(
+                            isTa
+                                ? 'விண்ணப்பத் தகுதிகளைப் பூர்த்தி செய்யும் அனைத்து தமிழ்நாட்டு மக்களுக்கான பொதுவான திட்டம்.'
+                                : 'General scheme open to eligible Tamil Nadu citizens meeting application requirements.',
+                            style: const TextStyle(fontSize: 15, height: 1.4, color: Colors.black87),
                           ),
                       ] else ...[
                         for (var item in evaluation.matchedCriteria)
@@ -357,7 +401,7 @@ class SchemeDetailScreen extends StatelessWidget {
                                 const SizedBox(width: 6),
                                 Expanded(
                                   child: Text(
-                                    item,
+                                    translateCriteria(item, isTamil: isTa),
                                     style: const TextStyle(fontSize: 15, height: 1.4, color: Colors.black87),
                                   ),
                                 ),
@@ -374,7 +418,7 @@ class SchemeDetailScreen extends StatelessWidget {
                                 const SizedBox(width: 6),
                                 Expanded(
                                   child: Text(
-                                    item,
+                                    translateCriteria(item, isTamil: isTa),
                                     style: const TextStyle(fontSize: 15, height: 1.4, color: Colors.red),
                                   ),
                                 ),
@@ -392,8 +436,12 @@ class SchemeDetailScreen extends StatelessWidget {
                                 Expanded(
                                   child: Text(
                                     scheme.category.toLowerCase().contains('education') || scheme.category.toLowerCase().contains('scholarship')
-                                        ? 'Specific course/institution eligibility must be verified at application time.'
-                                        : 'Specific department eligibility and certificate verification required at application time.',
+                                        ? (isTa
+                                            ? 'குறிப்பிட்ட படிப்பு/கல்லூரி தகுதியை விண்ணப்பிக்கும் போது சரிபார்க்க வேண்டும்.'
+                                            : 'Specific course/institution eligibility must be verified at application time.')
+                                        : (isTa
+                                            ? 'துறை சார்ந்த சான்றிதழ்கள் மற்றும் தகுதியை விண்ணப்பிக்கும் போது சரிபார்க்க வேண்டும்.'
+                                            : 'Specific department eligibility and certificate verification required at application time.'),
                                     style: const TextStyle(fontSize: 15, height: 1.4, color: Colors.black87),
                                   ),
                                 ),
@@ -408,9 +456,9 @@ class SchemeDetailScreen extends StatelessWidget {
               const SizedBox(height: 20),
 
               // SECTION 3: Also check yourself
-              const Text(
-                'Also check yourself',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              Text(
+                isTa ? 'சுய சரிபார்ப்பு' : 'Also check yourself',
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
               if (scheme.unmappedCriteria.isNotEmpty)
@@ -423,7 +471,7 @@ class SchemeDetailScreen extends StatelessWidget {
                         const Text('• ', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                         Expanded(
                           child: Text(
-                            cond,
+                            translateCriteria(cond, isTamil: isTa),
                             style: const TextStyle(fontSize: 15, height: 1.45, color: Colors.black87),
                           ),
                         ),
@@ -432,16 +480,16 @@ class SchemeDetailScreen extends StatelessWidget {
                   ),
                 )
               else
-                const Text(
+                Text(
                   fallbackDefault,
-                  style: TextStyle(fontSize: 15, fontStyle: FontStyle.italic, color: Colors.black87),
+                  style: const TextStyle(fontSize: 15, fontStyle: FontStyle.italic, color: Colors.black87),
                 ),
               const SizedBox(height: 20),
 
               // SECTION 4: Documents
-              const Text(
-                'Documents',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              Text(
+                isTa ? 'தேவையான ஆவணங்கள்' : 'Documents',
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
               if (scheme.requiredDocuments.isNotEmpty)
@@ -464,7 +512,7 @@ class SchemeDetailScreen extends StatelessWidget {
                                   const SizedBox(width: 8),
                                   Expanded(
                                     child: Text(
-                                      doc,
+                                      translateDocumentName(doc, isTamil: isTa),
                                       style: const TextStyle(fontSize: 15, height: 1.4, fontWeight: FontWeight.w500),
                                     ),
                                   ),
@@ -477,9 +525,9 @@ class SchemeDetailScreen extends StatelessWidget {
                   ),
                 )
               else
-                const Text(
+                Text(
                   fallbackDefault,
-                  style: TextStyle(fontSize: 15, fontStyle: FontStyle.italic, color: Colors.black87),
+                  style: const TextStyle(fontSize: 15, fontStyle: FontStyle.italic, color: Colors.black87),
                 ),
               const SizedBox(height: 20),
 
@@ -487,9 +535,9 @@ class SchemeDetailScreen extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    'How to apply',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  Text(
+                    isTa ? 'விண்ணப்பிக்கும் முறை' : 'How to apply',
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -498,12 +546,15 @@ class SchemeDetailScreen extends StatelessWidget {
                       borderRadius: BorderRadius.circular(6),
                       border: Border.all(color: Colors.green.shade200),
                     ),
-                    child: const Row(
+                    child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.check_circle_outline, color: Colors.green, size: 14),
-                        SizedBox(width: 4),
-                        Text('Step-by-step', style: TextStyle(color: Colors.green, fontSize: 12, fontWeight: FontWeight.bold)),
+                        const Icon(Icons.check_circle_outline, color: Colors.green, size: 14),
+                        const SizedBox(width: 4),
+                        Text(
+                          isTa ? 'படிமுறை வழிகாட்டி' : 'Step-by-step',
+                          style: const TextStyle(color: Colors.green, fontSize: 12, fontWeight: FontWeight.bold),
+                        ),
                       ],
                     ),
                   ),
@@ -542,7 +593,7 @@ class SchemeDetailScreen extends StatelessWidget {
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
-                            step,
+                            translateHowToApplyStep(step, isTamil: isTa),
                             style: const TextStyle(fontSize: 14.5, height: 1.45, color: Colors.black87),
                           ),
                         ),
@@ -558,14 +609,29 @@ class SchemeDetailScreen extends StatelessWidget {
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(color: Colors.grey.shade200),
                   ),
-                  child: const Column(
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('1. Visit your nearest Tamil Nadu e-Sevai centre (TNeGA) or local Taluk Office.', style: TextStyle(fontSize: 14.5, height: 1.45)),
-                      SizedBox(height: 6),
-                      Text('2. Carry your original Aadhaar Card, Smart Ration Card, Income Certificate, and Bank Passbook.', style: TextStyle(fontSize: 14.5, height: 1.45)),
-                      SizedBox(height: 6),
-                      Text('3. Request the operator to apply for the scheme and retain your digital acknowledgement slip with the application reference number.', style: TextStyle(fontSize: 14.5, height: 1.45)),
+                      Text(
+                        isTa
+                            ? '1. உங்கள் அருகிலுள்ள தமிழ்நாடு இ-சேவை மையம் (TNeGA) அல்லது தாலுகா அலுவலகத்தை அணுகவும்.'
+                            : '1. Visit your nearest Tamil Nadu e-Sevai centre (TNeGA) or local Taluk Office.',
+                        style: const TextStyle(fontSize: 14.5, height: 1.45),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        isTa
+                            ? '2. அசல் ஆதார் அட்டை, ஸ்மார்ட் குடும்ப அட்டை, வருமானச் சான்றிதழ் மற்றும் வங்கி கணக்கு புத்தகம் எடுத்துச் செல்லவும்.'
+                            : '2. Carry your original Aadhaar Card, Smart Ration Card, Income Certificate, and Bank Passbook.',
+                        style: const TextStyle(fontSize: 14.5, height: 1.45),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        isTa
+                            ? '3. இ-சேவை பணியாளரிடம் திட்டத்திற்கு விண்ணப்பித்து, விண்ணப்ப எண் கொண்ட ஒப்புதல் ரசீதைப் பெற்றுக் கொள்ளவும்.'
+                            : '3. Request the operator to apply for the scheme and retain your digital acknowledgement slip with the application reference number.',
+                        style: const TextStyle(fontSize: 14.5, height: 1.45),
+                      ),
                     ],
                   ),
                 ),
@@ -591,7 +657,9 @@ class SchemeDetailScreen extends StatelessWidget {
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            'What to do if you couldn\'t get the benefit / Application delayed?',
+                            isTa
+                                ? 'பயன் கிடைக்கவில்லை / விண்ணப்பம் தாமதமானால் என்ன செய்வது?'
+                                : 'What to do if you couldn\'t get the benefit / Application delayed?',
                             style: TextStyle(
                               fontSize: 14.5,
                               fontWeight: FontWeight.bold,
@@ -602,24 +670,32 @@ class SchemeDetailScreen extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 8),
-                    const Text(
-                      '• Check Application Status: Track your application on the official Tamil Nadu portal or visit the e-Sevai centre where you applied using your acknowledgement reference number.',
-                      style: TextStyle(fontSize: 13.5, height: 1.4, color: Colors.black87),
+                    Text(
+                      isTa
+                          ? '• விண்ணப்ப நிலை: அதிகாரப்பூர்வ தமிழ்நாடு இணையதளத்தில் ஒப்புதல் எண்ணைக் கொண்டு கண்காணிக்கவும் அல்லது விண்ணப்பித்த இ-சேவை மையத்தை அணுகவும்.'
+                          : '• Check Application Status: Track your application on the official Tamil Nadu portal or visit the e-Sevai centre where you applied using your acknowledgement reference number.',
+                      style: const TextStyle(fontSize: 13.5, height: 1.4, color: Colors.black87),
                     ),
                     const SizedBox(height: 6),
-                    const Text(
-                      '• Reason for Delay / Rejection: Common issues include Aadhaar-Bank account linking mismatch (NPCI mapping not active), expired income certificate, or family member already receiving a similar pension/grant.',
-                      style: TextStyle(fontSize: 13.5, height: 1.4, color: Colors.black87),
+                    Text(
+                      isTa
+                          ? '• நிராகரிப்பு / தாமதக் காரணம்: ஆதார்-வங்கி கணக்கு NPCI இணைப்பு இல்லாதது அல்லது குடும்பத்தில் ஒருவர் ஏற்கனவே உதவித்தொகை பெறுவது பொதுவாக காரணமாக இருக்கும்.'
+                          : '• Reason for Delay / Rejection: Common issues include Aadhaar-Bank account linking mismatch (NPCI mapping not active), expired income certificate, or family member already receiving a similar pension/grant.',
+                      style: const TextStyle(fontSize: 13.5, height: 1.4, color: Colors.black87),
                     ),
                     const SizedBox(height: 6),
-                    const Text(
-                      '• Grievance & Appeal: If unfairly rejected or delayed beyond 30 days, submit a petition at the District Collectorate Weekly Grievance Day (every Monday) or call CM Helpline 1100.',
-                      style: TextStyle(fontSize: 13.5, height: 1.4, color: Colors.black87),
+                    Text(
+                      isTa
+                          ? '• புகார் மற்றும் மேல்முறையீடு: 30 நாட்களுக்கு மேல் தாமதமானால் மாவட்ட ஆட்சியர் அலுவலக மக்கள் குறைதீர்க்கும் நாள் (திங்கட்கிழமை) அல்லது முதல்வர் உதவி மையம் 1100 ஐ அழைக்கவும்.'
+                          : '• Grievance & Appeal: If unfairly rejected or delayed beyond 30 days, submit a petition at the District Collectorate Weekly Grievance Day (every Monday) or call CM Helpline 1100.',
+                      style: const TextStyle(fontSize: 13.5, height: 1.4, color: Colors.black87),
                     ),
                     const SizedBox(height: 6),
-                    const Text(
-                      '• Free Help Desk: Visit your local Taluk Office Social Security Scheme (SSS) Tahsildar desk or call the toll-free helpline for free assistance.',
-                      style: TextStyle(fontSize: 13.5, height: 1.4, color: Colors.black87),
+                    Text(
+                      isTa
+                          ? '• இலவச உதவி மையம்: உள்ளூர் தாலுகா அலுவலக சமூக பாதுகாப்பு திட்ட (SSS) வட்டாட்சியர் பிரிவை அணுகலாம்.'
+                          : '• Free Help Desk: Visit your local Taluk Office Social Security Scheme (SSS) Tahsildar desk or call the toll-free helpline for free assistance.',
+                      style: const TextStyle(fontSize: 13.5, height: 1.4, color: Colors.black87),
                     ),
                   ],
                 ),
@@ -628,9 +704,9 @@ class SchemeDetailScreen extends StatelessWidget {
               const SizedBox(height: 24),
 
               // SECTION 6: Official links
-              const Text(
-                'Official links',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              Text(
+                isTa ? 'அதிகாரப்பூர்வ இணைப்புகள்' : 'Official links',
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
               if (scheme.officialLinks.where((l) => !l.is404).isNotEmpty)
@@ -662,9 +738,9 @@ class SchemeDetailScreen extends StatelessWidget {
                   ),
                 )
               else
-                const Text(
+                Text(
                   fallbackLinks,
-                  style: TextStyle(fontSize: 15, fontStyle: FontStyle.italic, color: Colors.black87),
+                  style: const TextStyle(fontSize: 15, fontStyle: FontStyle.italic, color: Colors.black87),
                 ),
                const SizedBox(height: 40),
             ],
@@ -740,14 +816,19 @@ class _OfficialExcerptTileState extends State<_OfficialExcerptTile> {
                 children: [
                   const Icon(Icons.description_outlined, size: 16, color: Colors.amber),
                   const SizedBox(width: 8),
-                  const Expanded(
-                    child: Text(
-                      'Official Text (Scraped Excerpt)',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black87,
-                      ),
+                  Expanded(
+                    child: Builder(
+                      builder: (ctx) {
+                        final isTa = Provider.of<LanguageProvider>(ctx, listen: false).isTamil;
+                        return Text(
+                          isTa ? 'அதிகாரப்பூர்வ உரை (இணையதள விவரம்)' : 'Official Text (Scraped Excerpt)',
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black87,
+                          ),
+                        );
+                      },
                     ),
                   ),
                   Icon(

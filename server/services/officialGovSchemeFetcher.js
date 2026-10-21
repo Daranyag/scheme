@@ -348,8 +348,8 @@ async function fetchAndStoreOfficialGovSchemes(maxSchemes = 25) {
     }
   }
 
-  // Concurrently process candidate schemes in parallel batches of 5 for high speed
-  const BATCH_SIZE = 5;
+  // Concurrently process candidate schemes in parallel batches for high speed
+  const BATCH_SIZE = 6;
   for (let i = 0; i < toProcess.length; i += BATCH_SIZE) {
     const batch = toProcess.slice(i, i + BATCH_SIZE);
     await Promise.all(batch.map(item => processSchemeItem(item)));

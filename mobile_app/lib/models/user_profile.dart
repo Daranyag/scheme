@@ -258,28 +258,44 @@ class UserProfile {
   }
 
   factory UserProfile.fromJson(Map<String, dynamic> json) {
-    int? parsedAge = json['age'] != null ? int.tryParse(json['age'].toString()) : null;
-    int? parsedIncome = json['family_income'] != null
-        ? int.tryParse(json['family_income'].toString())
-        : (json['income'] != null ? int.tryParse(json['income'].toString()) : null);
+    // Helper to normalize Tamil numerals (௦-௯) and numbers
+    String normalizeNumerals(dynamic val) {
+      if (val == null) return '';
+      String s = val.toString().trim();
+      const tamilDigits = {
+        '௦': '0', '௧': '1', 'உ': '2', '௩': '3', '௪': '4',
+        '௫': '5', '௬': '6', '௭': '7', '௮': '8', '௯': '9',
+      };
+      tamilDigits.forEach((ta, en) {
+        s = s.replaceAll(ta, en);
+      });
+      // Handle Tamil shorthand numbers if user typed 'லட்சம்' / 'கோடி'
+      return s;
+    }
 
     double? parseDbl(dynamic val) {
       if (val == null) return null;
-      return double.tryParse(val.toString());
+      final cleaned = normalizeNumerals(val);
+      return double.tryParse(cleaned);
     }
 
     int? parseInt(dynamic val) {
       if (val == null) return null;
-      return int.tryParse(val.toString());
+      final cleaned = normalizeNumerals(val);
+      return int.tryParse(cleaned);
     }
 
     bool? parseBool(dynamic val) {
       if (val == null) return null;
       if (val is bool) return val;
-      if (val.toString().toLowerCase() == 'true') return true;
-      if (val.toString().toLowerCase() == 'false') return false;
+      final s = val.toString().trim().toLowerCase();
+      if (s == 'true' || s == 'yes' || s == 'ஆம்' || s == 'சரி') return true;
+      if (s == 'false' || s == 'no' || s == 'இல்லை') return false;
       return null;
     }
+
+    int? parsedAge = parseInt(json['age']);
+    int? parsedIncome = parseInt(json['family_income'] ?? json['income']);
 
     List<String> parsedExpenses = [];
     if (json['expense_sources'] != null) {
@@ -298,13 +314,47 @@ class UserProfile {
       parsedCrops = (json['crops_cultivated'] as List).map((e) => e.toString()).toList();
     }
 
+    // Normalize string fields that could be entered in Tamil
+    String? normalizeTamilString(dynamic val) {
+      if (val == null) return null;
+      final str = val.toString().trim();
+      final lower = str.toLowerCase();
+      // Gender
+      if (str == 'பெண்' || str == 'மகளிர்' || lower == 'female' || lower == 'f') return 'F';
+      if (str == 'ஆண்' || lower == 'male' || lower == 'm') return 'M';
+      if (str == 'மற்றவை' || str == 'திருநங்கை' || str == 'மூன்றாம் பாலினம்' || lower == 'other' || lower == 'o') return 'O';
+      // Marital
+      if (str == 'திருமணம் ஆகாதவர்' || str == 'மணமாகாதவர்' || lower == 'unmarried' || lower == 'single') return 'unmarried';
+      if (str == 'திருமணமானவர்' || str == 'மணம் ஆனவர்' || lower == 'married') return 'married';
+      if (str == 'விதவை' || str == 'கைம்பெண்' || lower == 'widowed' || lower == 'widow') return 'widowed';
+      if (str == 'கைவிடப்பட்டவர்' || str == 'விவாகரத்து' || str == 'பிரிந்தவர்' || lower == 'deserted' || lower == 'divorced') return 'deserted';
+      // District (common Tamil names to standard English database district key)
+      const districtMap = {
+        'சென்னை': 'Chennai', 'கோவை': 'Coimbatore', 'கோயம்புத்தூர்': 'Coimbatore',
+        'மதுரை': 'Madurai', 'திருச்சி': 'Tiruchirappalli', 'திருச்சிராப்பள்ளி': 'Tiruchirappalli',
+        'சேலம்': 'Salem', 'ஈரோடு': 'Erode', 'திருப்பூர்': 'Tiruppur', 'நெல்லை': 'Tirunelveli',
+        'திருநெல்வேலி': 'Tirunelveli', 'திண்டுக்கல்': 'Dindigul', 'தஞ்சாவூர்': 'Thanjavur',
+        'வேலூர்': 'Vellore', 'கடலூர்': 'Cuddalore', 'விழுப்புரம்': 'Viluppuram',
+        'நாகப்பட்டினம்': 'Nagapattinam', 'கன்னியாகுமரி': 'Kanyakumari', 'தூத்துக்குடி': 'Thoothukudi',
+        'தருமபுரி': 'Dharmapuri', 'கிருஷ்ணகிரி': 'Krishnagiri', 'காஞ்சிபுரம்': 'Kanchipuram',
+        'செங்கல்பட்டு': 'Chengalpattu', 'திருவள்ளூர்': 'Tiruvallur', 'திருவண்ணாமலை': 'Tiruvannamalai',
+        'நாமக்கல்': 'Namakkal', 'கரூர்': 'Karur', 'நீலகிரி': 'Nilgiris', 'பெரம்பலூர்': 'Perambalur',
+        'அரியலூர்': 'Ariyalur', 'புதுக்கோட்டை': 'Pudukkottai', 'சிவகங்கை': 'Sivaganga',
+        'ராமநாதபுரம்': 'Ramanathapuram', 'விருதுநகர்': 'Virudhunagar', 'தேனி': 'Theni',
+        'தென்காசி': 'Tenkasi', 'திருப்பத்தூர்': 'Tirupathur', 'ராணிப்பேட்டை': 'Ranipet',
+        'மயிலாடுதுறை': 'Mayiladuthurai', 'திருவாரூர்': 'Tiruvarur',
+      };
+      if (districtMap.containsKey(str)) return districtMap[str];
+      return str;
+    }
+
     return UserProfile(
       age: parsedAge,
-      gender: json['gender'] ?? 'F',
-      district: json['district'],
+      gender: normalizeTamilString(json['gender']) ?? 'F',
+      district: normalizeTamilString(json['district']),
       areaType: json['area_type'],
       community: json['community'],
-      marital: json['marital'] ?? 'unmarried',
+      marital: normalizeTamilString(json['marital']) ?? 'unmarried',
       spouseLivingWith: parseBool(json['spouse_living_with']),
       childrenCount: parseInt(json['children_count']),
       daughterUnder18: parseBool(json['daughter_under_18']),
@@ -508,5 +558,10 @@ class UserProfile {
     final prefs = await SharedPreferences.getInstance();
     final jsonString = jsonEncode(toJson());
     return await prefs.setString(_prefKey, jsonString);
+  }
+
+  static Future<bool> clearFromPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    return await prefs.remove(_prefKey);
   }
 }

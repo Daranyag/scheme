@@ -4,8 +4,10 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:provider/provider.dart';
 import '../models/scheme.dart';
 import '../models/user_profile.dart';
+import '../providers/language_provider.dart';
 import '../services/api_service.dart';
 
 class FinderScreen extends StatefulWidget {
@@ -154,20 +156,24 @@ class _FinderScreenState extends State<FinderScreen> with SingleTickerProviderSt
 
   @override
   Widget build(BuildContext context) {
+    final isTa = Provider.of<LanguageProvider>(context).isTamil;
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'AI Scheme & Document Finder',
+            isTa ? 'AI திட்ட & ஆவணத் தேடல்' : 'AI Scheme & Document Finder',
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
           ),
           const SizedBox(height: 4),
           Text(
-            'Upload a G.O. document, photo, or link of a new scheme to extract criteria and check eligibility using AI.',
+            isTa
+                ? 'அரசாணை ஆவணம், புகைப்படம் அல்லது புதிய திட்ட இணைப்பைப் பதிவேற்றி AI மூலம் தகுதியைச் சரிபார்க்கவும்.'
+                : 'Upload a G.O. document, photo, or link of a new scheme to extract criteria and check eligibility using AI.',
             style: TextStyle(color: Colors.grey[700]),
           ),
           const SizedBox(height: 16),
@@ -176,9 +182,9 @@ class _FinderScreenState extends State<FinderScreen> with SingleTickerProviderSt
             controller: _tabController,
             labelColor: Theme.of(context).colorScheme.primary,
             indicatorColor: Theme.of(context).colorScheme.primary,
-            tabs: const [
-              Tab(icon: Icon(Icons.upload_file), text: 'Upload File'),
-              Tab(icon: Icon(Icons.link), text: 'Link / Text'),
+            tabs: [
+              Tab(icon: const Icon(Icons.upload_file), text: isTa ? 'கோப்பைப் பதிவேற்றுக' : 'Upload File'),
+              Tab(icon: const Icon(Icons.link), text: isTa ? 'இணைப்பு / உரை' : 'Link / Text'),
             ],
           ),
 
@@ -195,7 +201,9 @@ class _FinderScreenState extends State<FinderScreen> with SingleTickerProviderSt
                       OutlinedButton.icon(
                         onPressed: _pickFile,
                         icon: const Icon(Icons.attach_file),
-                        label: Text(_selectedFile != null ? (_selectedFile.name?.toString() ?? 'Selected File') : 'Select PDF or Image (JPG/PNG)'),
+                        label: Text(_selectedFile != null
+                            ? (_selectedFile.name?.toString() ?? (isTa ? 'தேர்ந்தெடுக்கப்பட்ட கோப்பு' : 'Selected File'))
+                            : (isTa ? 'PDF அல்லது படம் (JPG/PNG) தேர்ந்தெடுக்கவும்' : 'Select PDF or Image (JPG/PNG)')),
                         style: OutlinedButton.styleFrom(
                           minimumSize: const Size(double.infinity, 50),
                         ),
@@ -207,7 +215,7 @@ class _FinderScreenState extends State<FinderScreen> with SingleTickerProviderSt
                           children: [
                             const Icon(Icons.check_circle, color: Colors.green, size: 18),
                             const SizedBox(width: 4),
-                            Text('Selected: ${_selectedFile.name ?? 'File'}'),
+                            Text(isTa ? 'தேர்ந்தெடுக்கப்பட்டது: ${_selectedFile.name ?? 'கோப்பு'}' : 'Selected: ${_selectedFile.name ?? 'File'}'),
                             IconButton(
                               icon: const Icon(Icons.close, size: 18),
                               onPressed: () => setState(() => _selectedFile = null),
@@ -227,20 +235,20 @@ class _FinderScreenState extends State<FinderScreen> with SingleTickerProviderSt
                     children: [
                       TextField(
                         controller: _urlController,
-                        decoration: const InputDecoration(
-                          labelText: 'Scheme Web URL',
+                        decoration: InputDecoration(
+                          labelText: isTa ? 'திட்ட வலைப்பக்க முகவரி (URL)' : 'Scheme Web URL',
                           hintText: 'https://www.tn.gov.in/scheme/...',
-                          border: OutlineInputBorder(),
-                          prefixIcon: Icon(Icons.language),
+                          border: const OutlineInputBorder(),
+                          prefixIcon: const Icon(Icons.language),
                         ),
                       ),
                       const SizedBox(height: 10),
                       TextField(
                         controller: _textController,
-                        decoration: const InputDecoration(
-                          labelText: 'Or Paste Scheme Text / Description',
-                          border: OutlineInputBorder(),
-                          prefixIcon: Icon(Icons.notes),
+                        decoration: InputDecoration(
+                          labelText: isTa ? 'அல்லது திட்ட விளக்கம் / உரையை ஒட்டவும்' : 'Or Paste Scheme Text / Description',
+                          border: const OutlineInputBorder(),
+                          prefixIcon: const Icon(Icons.notes),
                         ),
                         maxLines: 2,
                       ),
@@ -282,7 +290,9 @@ class _FinderScreenState extends State<FinderScreen> with SingleTickerProviderSt
                       child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                     )
                   : const Icon(Icons.auto_awesome),
-              label: Text(_isAnalyzing ? (_analyzeStage ?? 'Analyzing...') : 'Analyze Eligibility'),
+              label: Text(_isAnalyzing
+                  ? (_analyzeStage ?? (isTa ? 'பகுப்பாய்வு செய்கிறது...' : 'Analyzing...'))
+                  : (isTa ? 'தகுதியை சரிபார்க்க' : 'Analyze Eligibility')),
             ),
           ),
 
@@ -322,7 +332,7 @@ class _FinderScreenState extends State<FinderScreen> with SingleTickerProviderSt
           if (_analysisResult != null) ...[
             const SizedBox(height: 20),
             Text(
-              'Extracted Scheme & Eligibility Verdict',
+              isTa ? 'கண்டறியப்பட்ட திட்டம் & தகுதி முடிவு' : 'Extracted Scheme & Eligibility Verdict',
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
@@ -359,8 +369,10 @@ class _FinderScreenState extends State<FinderScreen> with SingleTickerProviderSt
                               ),
                               label: Text(
                                 isEligible
-                                    ? 'VERDICT: ELIGIBLE'
-                                    : (isNotEligible ? 'VERDICT: NOT ELIGIBLE' : 'VERDICT: POSSIBLY ELIGIBLE - VERIFY'),
+                                    ? (isTa ? 'முடிவு: தகுதியுடையது' : 'VERDICT: ELIGIBLE')
+                                    : (isNotEligible
+                                        ? (isTa ? 'முடிவு: தகுதியற்றது' : 'VERDICT: NOT ELIGIBLE')
+                                        : (isTa ? 'முடிவு: சரிபார்க்க தேவை' : 'VERDICT: POSSIBLY ELIGIBLE - VERIFY')),
                                 style: TextStyle(color: cardColor, fontWeight: FontWeight.bold),
                               ),
                               backgroundColor: cardColor.withValues(alpha: 0.1),
@@ -369,34 +381,51 @@ class _FinderScreenState extends State<FinderScreen> with SingleTickerProviderSt
                         ),
                         const SizedBox(height: 4),
                         if (item['source'] == 'database')
-                          const Row(
+                          Row(
                              children: [
-                                Icon(Icons.verified, color: Colors.blue, size: 16),
-                                SizedBox(width: 4),
-                                Text('Found in the scheme database', style: TextStyle(fontSize: 12, color: Colors.blue, fontStyle: FontStyle.italic)),
+                                const Icon(Icons.verified, color: Colors.blue, size: 16),
+                                const SizedBox(width: 4),
+                                Text(
+                                  isTa ? 'திட்டத் தரவுத்தளத்தில் கண்டறியப்பட்டது' : 'Found in the scheme database',
+                                  style: const TextStyle(fontSize: 12, color: Colors.blue, fontStyle: FontStyle.italic),
+                                ),
                              ]
                           )
                         else
-                          const Text('Analysed from the information you gave', style: TextStyle(fontSize: 12, color: Colors.grey, fontStyle: FontStyle.italic)),
+                          Text(
+                            isTa ? 'நீங்கள் வழங்கிய தகவலிலிருந்து பகுப்பாய்வு செய்யப்பட்டது' : 'Analysed from the information you gave',
+                            style: const TextStyle(fontSize: 12, color: Colors.grey, fontStyle: FontStyle.italic),
+                          ),
                         const SizedBox(height: 8),
                         Text(
-                          item['name'] ?? 'Extracted Scheme',
+                          item['name'] ?? (isTa ? 'கண்டறியப்பட்ட திட்டம்' : 'Extracted Scheme'),
                           style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                         ),
+                        if (item['nameTamil'] != null && item['nameTamil'].toString().isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 2.0),
+                            child: Text(
+                              item['nameTamil'].toString(),
+                              style: TextStyle(fontSize: 15, color: Colors.grey[750], fontWeight: FontWeight.w500),
+                            ),
+                          ),
                         if (item['benefit'] != null) ...[
                           const SizedBox(height: 6),
                           Text(
-                            'Benefit: ${item['benefit']}',
+                            isTa ? 'பயன்: ${item['benefit']}' : 'Benefit: ${item['benefit']}',
                             style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.green),
                           ),
                         ],
                         if (item['reason'] != null) ...[
                           const SizedBox(height: 8),
-                          Text('Reason: ${item['reason']}'),
+                          Text(isTa ? 'காரணம்: ${item['reason']}' : 'Reason: ${item['reason']}'),
                         ],
                         if (item['criteria'] is List && (item['criteria'] as List).isNotEmpty) ...[
                           const SizedBox(height: 10),
-                          const Text('Extracted Criteria:', style: TextStyle(fontWeight: FontWeight.bold)),
+                          Text(
+                            isTa ? 'கண்டறியப்பட்ட நிபந்தனைகள்:' : 'Extracted Criteria:',
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
                           ...(item['criteria'] as List).map((c) => Padding(
                                 padding: const EdgeInsets.only(left: 8.0, top: 2.0),
                                 child: Text('• $c'),
@@ -441,7 +470,7 @@ class _FinderScreenState extends State<FinderScreen> with SingleTickerProviderSt
                                                 : null;
 
                                             final newScheme = Scheme(
-                                              id: existing?.id ?? 'finder_' + DateTime.now().millisecondsSinceEpoch.toString(),
+                                              id: existing?.id ?? 'finder_${DateTime.now().millisecondsSinceEpoch}',
                                               name: schemeName,
                                               nameTamil: (item['nameTamil']?.toString().isNotEmpty ?? false)
                                                   ? item['nameTamil']!.toString()
@@ -500,7 +529,9 @@ class _FinderScreenState extends State<FinderScreen> with SingleTickerProviderSt
                                           },
                                     icon: Icon(isAdded ? Icons.check : Icons.add_to_photos),
                                     label: Text(
-                                      isAdded ? 'Added to Dashboard' : 'Add to Dashboard',
+                                      isAdded
+                                          ? (isTa ? 'சேர்க்கப்பட்டது' : 'Added to Dashboard')
+                                          : (isTa ? 'முதன்மைப் பக்கத்தில் சேர்க்க' : 'Add to Dashboard'),
                                       style: const TextStyle(fontWeight: FontWeight.bold),
                                     ),
                                   ),
@@ -515,10 +546,24 @@ class _FinderScreenState extends State<FinderScreen> with SingleTickerProviderSt
                 );
               })
             else
-              const Card(
+              Card(
+                elevation: 2,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 child: Padding(
-                  padding: EdgeInsets.all(16.0),
-                  child: Text('No scheme details could be extracted from the input provided.'),
+                  padding: const EdgeInsets.all(16.0),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.info_outline, color: Colors.orange, size: 24),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          _analysisResult!['message']?.toString() ??
+                              'No scheme found on this web page. Please verify the URL or paste the scheme description directly.',
+                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
           ],

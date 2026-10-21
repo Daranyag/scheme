@@ -1,22 +1,22 @@
 const { GoogleGenAI } = require('@google/genai');
 
 const PREFERENCE_LIST = [
+  'gemini-3.5-flash-lite',
+  'gemini-3.1-flash-lite',
   'gemini-3.8-flash',
   'gemini-3.7-flash',
   'gemini-3.6-flash',
-  'gemini-3.5-flash',
-  'gemini-3.5-flash-lite',
-  'gemini-3.1-flash-lite'
+  'gemini-3.5-flash'
 ];
 
 let cachedConfig = null;
 let initPromise = null;
 
 function getConfiguredNames() {
-  const mainModel = process.env.GEMINI_MODEL || 'gemini-3.8-flash';
-  const fallbackModel = process.env.GEMINI_FALLBACK_MODEL || 'gemini-3.5-flash-lite';
+  const mainModel = process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite';
+  const fallbackModel = process.env.GEMINI_FALLBACK_MODEL || 'gemini-3.1-flash-lite';
   const backgroundModel = process.env.GEMINI_BACKGROUND_MODEL || fallbackModel;
-  const groundingModel = process.env.GEMINI_GROUNDING_MODEL || mainModel;
+  const groundingModel = process.env.GEMINI_GROUNDING_MODEL || 'gemini-3.5-flash';
   return { mainModel, fallbackModel, backgroundModel, groundingModel };
 }
 

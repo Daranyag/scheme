@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../models/scheme.dart';
+import '../providers/language_provider.dart';
 
 class VerificationBadge extends StatelessWidget {
   final Scheme scheme;
@@ -11,12 +13,14 @@ class VerificationBadge extends StatelessWidget {
     this.isCompact = false,
   });
 
-  String _formatDate(String dateStr) {
-    if (dateStr.isEmpty) return 'Unverified';
+  String _formatDate(String dateStr, {bool isTa = false}) {
+    if (dateStr.isEmpty) return isTa ? 'சரிபார்க்கப்படவில்லை' : 'Unverified';
     try {
       final dt = DateTime.parse(dateStr);
-      final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-      return '${dt.day.toString().padLeft(2, '0')} ${months[dt.month - 1]} ${dt.year}';
+      final monthsEn = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      final monthsTa = ['ஜன', 'பிப்', 'மார்ச்', 'ஏப்', 'மே', 'ஜூன்', 'ஜூலை', 'ஆக', 'செப்', 'அக்', 'நவ', 'டிச'];
+      final month = isTa ? monthsTa[dt.month - 1] : monthsEn[dt.month - 1];
+      return '${dt.day.toString().padLeft(2, '0')} $month ${dt.year}';
     } catch (_) {
       return dateStr.split('T').first;
     }
@@ -25,40 +29,40 @@ class VerificationBadge extends StatelessWidget {
   /// Determines display state, label, icon and color from scheme verification fields.
   /// 5 states: confirmed, partial, fetched_not_parsed, unreachable, never_checked.
   /// Never shows "awaiting AI check" wording.
-  ({String label, IconData icon, Color color, String state}) _resolveDisplayState() {
+  ({String label, IconData icon, Color color, String state}) _resolveDisplayState({bool isTa = false}) {
     if (scheme.displayState.isNotEmpty) {
       final ds = scheme.displayState.toLowerCase();
       if (ds == 'confirmed') {
         return (
-          label: 'Official source confirmed',
+          label: isTa ? 'அதிகாரப்பூர்வ தகவல்' : 'Official source confirmed',
           icon: Icons.verified,
           color: Colors.green,
           state: 'confirmed',
         );
       } else if (ds == 'partial') {
         return (
-          label: 'Partly confirmed',
+          label: isTa ? 'பகுதி சரிபார்க்கப்பட்டது' : 'Partly confirmed',
           icon: Icons.check_circle_outline,
           color: Colors.amber[700]!,
           state: 'partial',
         );
       } else if (ds == 'fetched_not_parsed') {
         return (
-          label: 'Details not yet confirmed',
+          label: isTa ? 'முழு விவரம் தேவை' : 'Details not yet confirmed',
           icon: Icons.article_outlined,
           color: Colors.blueGrey,
           state: 'fetched_not_parsed',
         );
       } else if (ds == 'unreachable') {
         return (
-          label: 'Official site not reachable',
+          label: isTa ? 'தளத்தை அணுக முடியவில்லை' : 'Official site not reachable',
           icon: Icons.cloud_off,
           color: Colors.deepOrange,
           state: 'unreachable',
         );
       } else if (ds == 'never_checked') {
         return (
-          label: 'Not yet confirmed',
+          label: isTa ? 'சரிபார்க்கப்படவில்லை' : 'Not yet confirmed',
           icon: Icons.info_outline,
           color: Colors.grey[700]!,
           state: 'never_checked',
@@ -74,7 +78,7 @@ class VerificationBadge extends StatelessWidget {
     if ((status == 'verified' || status == 'confirmed' || level == 'official') &&
         status != 'unreachable' && status != 'tls_problem' && status != 'blocked') {
       return (
-        label: 'Official source confirmed',
+        label: isTa ? 'அதிகாரப்பூர்வ தகவல்' : 'Official source confirmed',
         icon: Icons.verified,
         color: Colors.green,
         state: 'confirmed',
@@ -84,7 +88,7 @@ class VerificationBadge extends StatelessWidget {
     // 2. Differs: extracted data differs from stored
     if (status == 'differs' || level == 'differs') {
       return (
-        label: 'Information differs',
+        label: isTa ? 'விவரம் மாறுபடுகிறது' : 'Information differs',
         icon: Icons.warning_amber_rounded,
         color: Colors.orange[800]!,
         state: 'differs',
@@ -94,7 +98,7 @@ class VerificationBadge extends StatelessWidget {
     // 3. Partial: some facts scraped but not fully verified
     if (status == 'partial') {
       return (
-        label: 'Partly confirmed',
+        label: isTa ? 'பகுதி சரிபார்க்கப்பட்டது' : 'Partly confirmed',
         icon: Icons.check_circle_outline,
         color: Colors.amber[700]!,
         state: 'partial',
@@ -105,7 +109,7 @@ class VerificationBadge extends StatelessWidget {
     if (status == 'fetched_not_parsed' || status == 'awaiting ai check' ||
         status == 'needs better recipe') {
       return (
-        label: 'Details not yet confirmed',
+        label: isTa ? 'முழு விவரம் தேவை' : 'Details not yet confirmed',
         icon: Icons.article_outlined,
         color: Colors.blueGrey,
         state: 'fetched_not_parsed',
@@ -116,7 +120,7 @@ class VerificationBadge extends StatelessWidget {
     if (status == 'unreachable' || status == 'tls_problem' || status == 'blocked' ||
         status == 'timeout' || reason.contains('expired') || reason.contains('timeout')) {
       return (
-        label: 'Official site not reachable',
+        label: isTa ? 'தளத்தை அணுக முடியவில்லை' : 'Official site not reachable',
         icon: Icons.cloud_off,
         color: Colors.deepOrange,
         state: 'unreachable',
@@ -125,7 +129,7 @@ class VerificationBadge extends StatelessWidget {
 
     // 6. Never checked (default)
     return (
-      label: 'Not yet confirmed',
+      label: isTa ? 'சரிபார்க்கப்படவில்லை' : 'Not yet confirmed',
       icon: Icons.info_outline,
       color: Colors.grey[700]!,
       state: 'never_checked',
@@ -134,18 +138,19 @@ class VerificationBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final display = _resolveDisplayState();
+    final isTa = Provider.of<LanguageProvider>(context).isTamil;
+    final display = _resolveDisplayState(isTa: isTa);
     final label = display.label;
     final icon = display.icon;
     final color = display.color;
 
     final dateText = scheme.lastVerified.isNotEmpty
-        ? 'Verified: ${_formatDate(scheme.lastVerified)}'
+        ? (isTa ? 'சரிபார்க்கப்பட்டது: ${_formatDate(scheme.lastVerified, isTa: isTa)}' : 'Verified: ${_formatDate(scheme.lastVerified)}')
         : (display.state == 'confirmed'
-            ? 'Confirmed from official source'
+            ? (isTa ? 'அதிகாரப்பூர்வ தளத்திலிருந்து உறுதிப்படுத்தப்பட்டது' : 'Confirmed from official source')
             : (display.state == 'unreachable'
-                ? 'Last check failed'
-                : 'Pending verification'));
+                ? (isTa ? 'கடைசி சோதனை தோல்வியடைந்தது' : 'Last check failed')
+                : (isTa ? 'சரிபார்ப்பு நிலுவையில் உள்ளது' : 'Pending verification')));
 
     if (isCompact) {
       return Container(

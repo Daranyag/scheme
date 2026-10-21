@@ -181,7 +181,8 @@ router.post('/login', [
                 user: {
                     email: user.email,
                     displayName: user.displayName,
-                    createdAt: user.createdAt
+                    createdAt: user.createdAt,
+                    fullProfile: user.fullProfile || {}
                 }
             });
         }

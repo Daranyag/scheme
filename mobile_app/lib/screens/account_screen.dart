@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../models/user_profile.dart';
 import '../providers/auth_provider.dart';
 import '../providers/language_provider.dart';
 import 'privacy_note_dialog.dart';
+import 'settings_screen.dart';
 
 class AccountScreen extends StatefulWidget {
   const AccountScreen({super.key});
@@ -15,6 +17,7 @@ class _AccountScreenState extends State<AccountScreen> {
   bool _isEditingNickname = false;
   final _nicknameController = TextEditingController();
   bool _isLoading = false;
+  UserProfile? _userProfile;
 
   @override
   void initState() {
@@ -22,6 +25,16 @@ class _AccountScreenState extends State<AccountScreen> {
     final user = Provider.of<AuthProvider>(context, listen: false).user;
     if (user != null) {
       _nicknameController.text = user['displayName'] ?? '';
+    }
+    _loadUserProfile();
+  }
+
+  Future<void> _loadUserProfile() async {
+    final profile = await UserProfile.loadFromPrefs();
+    if (mounted) {
+      setState(() {
+        _userProfile = profile;
+      });
     }
   }
 
@@ -389,15 +402,116 @@ class _AccountScreenState extends State<AccountScreen> {
               ),
               const SizedBox(height: 24),
 
-              // Nickname Section
-              const Text(
-                'ACCOUNT SETTINGS',
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey),
+              // Filled Profile Details Card
+              Card(
+                elevation: 2,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(Icons.badge_outlined, color: Color(0xFF1B7F4B)),
+                              const SizedBox(width: 8),
+                              Text(
+                                isTa ? 'நிரப்பப்பட்ட சுயவிவர விவரங்கள்' : 'Filled Citizen Profile',
+                                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                              ),
+                            ],
+                          ),
+                          TextButton.icon(
+                            style: TextButton.styleFrom(
+                              foregroundColor: const Color(0xFF1B7F4B),
+                              padding: const EdgeInsets.symmetric(horizontal: 8),
+                            ),
+                            onPressed: () {
+                              Navigator.pop(context, 1); // switch to profile tab
+                            },
+                            icon: const Icon(Icons.edit, size: 16),
+                            label: Text(isTa ? 'திருத்து' : 'Edit'),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      if (_userProfile == null)
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 8.0),
+                          child: Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))),
+                        )
+                      else ...[
+                        _buildProfileRow(
+                          isTa ? 'வயது' : 'Age',
+                          _userProfile?.age != null ? '${_userProfile!.age} yrs' : (isTa ? 'குறிப்பிடப்படவில்லை' : 'Not set'),
+                          Icons.cake_outlined,
+                        ),
+                        _buildProfileRow(
+                          isTa ? 'பாலினம்' : 'Gender',
+                          _userProfile?.gender != null
+                              ? (_userProfile!.gender == 'F' ? 'Female (பெண்)' : (_userProfile!.gender == 'M' ? 'Male (ஆண்)' : 'Other'))
+                              : (isTa ? 'குறிப்பிடப்படவில்லை' : 'Not set'),
+                          Icons.wc_outlined,
+                        ),
+                        _buildProfileRow(
+                          isTa ? 'மாவட்டம்' : 'District',
+                          _userProfile?.district ?? (isTa ? 'குறிப்பிடப்படவில்லை' : 'Not set'),
+                          Icons.location_on_outlined,
+                        ),
+                        _buildProfileRow(
+                          isTa ? 'சமூக பிரிவு' : 'Community',
+                          _userProfile?.community ?? (isTa ? 'குறிப்பிடப்படவில்லை' : 'Not set'),
+                          Icons.people_outline,
+                        ),
+                        _buildProfileRow(
+                          isTa ? 'திருமண நிலை' : 'Marital Status',
+                          _userProfile?.marital ?? (isTa ? 'குறிப்பிடப்படவில்லை' : 'Not set'),
+                          Icons.favorite_border,
+                        ),
+                        _buildProfileRow(
+                          isTa ? 'குடும்ப ஆண்டு வருமானம்' : 'Family Annual Income',
+                          _userProfile?.familyIncome != null
+                              ? '₹${_userProfile!.familyIncome}'
+                              : (_userProfile?.incomeRangeBand ?? (isTa ? 'குறிப்பிடப்படவில்லை' : 'Not set')),
+                          Icons.currency_rupee,
+                        ),
+                        _buildProfileRow(
+                          isTa ? 'தொழில் / பணி' : 'Occupation / Work',
+                          _userProfile?.workStatus ?? (isTa ? 'குறிப்பிடப்படவில்லை' : 'Not set'),
+                          Icons.work_outline,
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // Account & Security Section
+              Text(
+                isTa ? 'கணக்கு & அமைப்புகள்' : 'ACCOUNT & SETTINGS',
+                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey),
               ),
               const SizedBox(height: 8),
               Card(
                 child: Column(
                   children: [
+                    ListTile(
+                      leading: const Icon(Icons.settings_outlined, color: Color(0xFF1B7F4B)),
+                      title: Text(isTa ? 'செயலியின் அமைப்புகள்' : 'App Settings'),
+                      subtitle: Text(isTa ? 'மொழி, மாறுபட்ட காட்சி, ஒத்திசைவு' : 'Language, display, auto-sync, notifications'),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                        );
+                      },
+                    ),
+                    const Divider(height: 1),
                     ListTile(
                       leading: const Icon(Icons.person_outline),
                       title: const Text('Nickname (Optional)'),
@@ -510,6 +624,33 @@ class _AccountScreenState extends State<AccountScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildProfileRow(String label, String value, IconData icon) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: Row(
+        children: [
+          Icon(icon, size: 16, color: Colors.grey.shade600),
+          const SizedBox(width: 8),
+          Expanded(
+            flex: 2,
+            child: Text(
+              label,
+              style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
+            ),
+          ),
+          Expanded(
+            flex: 3,
+            child: Text(
+              value,
+              textAlign: TextAlign.end,
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+            ),
+          ),
+        ],
       ),
     );
   }

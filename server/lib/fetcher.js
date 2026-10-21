@@ -8,12 +8,13 @@ const { isAllowlistedUrl } = require('../config/allowlist');
 
 const USER_AGENT = process.env.FETCH_USER_AGENT || 'TNSchemesBot/1.0 (Contact: admin@tn.gov.in)';
 
-// Global Concurrency Limit = 3
+// Global Concurrency Limit (defaults to 6, customizable via FETCH_CONCURRENCY)
+const GLOBAL_CONCURRENCY = parseInt(process.env.FETCH_CONCURRENCY || '6', 10);
 let activeGlobalRequests = 0;
 const globalQueue = [];
 
 async function acquireGlobalSlot() {
-  if (activeGlobalRequests < 3) {
+  if (activeGlobalRequests < GLOBAL_CONCURRENCY) {
     activeGlobalRequests++;
     return;
   }
@@ -29,7 +30,7 @@ function releaseGlobalSlot() {
   }
 }
 
-// Per-Domain Locking & Rate Limiting (1 request at a time, 3s delay)
+// Per-Domain Locking & Rate Limiting
 const domainLocks = new Map();
 const lastDomainRequestTime = new Map();
 const domainConsecutiveFailures = new Map();
@@ -39,14 +40,15 @@ const domainStatus = new Map();
 const domainSkippedLogged = new Set();
 const domainWorkingVariant = new Map(); // domain -> working url variant
 
-async function acquireDomainLock(domain) {
-  const pollInterval = process.env.NODE_ENV === 'test' ? 5 : 100;
+async function acquireDomainLock(domain, options = {}) {
+  const pollInterval = process.env.NODE_ENV === 'test' ? 5 : 50;
   while (domainLocks.get(domain)) {
     await new Promise(r => setTimeout(r, pollInterval));
   }
   domainLocks.set(domain, true);
 
-  const minInterval = process.env.NODE_ENV === 'test' ? 10 : 3000;
+  const defaultInterval = process.env.NODE_ENV === 'test' ? 10 : 300;
+  const minInterval = options.minInterval !== undefined ? options.minInterval : defaultInterval;
   const lastTime = lastDomainRequestTime.get(domain) || 0;
   const elapsed = Date.now() - lastTime;
   if (elapsed < minInterval) {
@@ -323,7 +325,7 @@ async function fetchPage(url, options = {}) {
     if (!isAllowlistedUrl(currentCandidate)) continue;
 
     await acquireGlobalSlot();
-    await acquireDomainLock(domain);
+    await acquireDomainLock(domain, options);
 
     try {
       const fetchAttempt = await executeFetchWithRetries(currentCandidate, domain, options);
@@ -386,9 +388,9 @@ async function fetchPage(url, options = {}) {
 }
 
 async function executeFetchWithRetries(targetUrl, domain, options) {
-  const retryDelays = options.customDelays || [2000, 5000];
+  const retryDelays = options.customDelays || [800, 1500];
   const maxRetries = options.maxRetries !== undefined ? options.maxRetries : 2; // at most 2 retries (up to 3 attempts total: 0, 1, 2)
-  const timeoutMs = options.timeoutMs || 20000;
+  const timeoutMs = options.timeoutMs || 12000;
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {

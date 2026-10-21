@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/user_profile.dart';
 import '../providers/auth_provider.dart';
+import '../providers/language_provider.dart';
 import '../services/api_service.dart';
 import 'account_screen.dart';
 import 'login_screen.dart';
@@ -116,18 +117,40 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  int? _parseTamilInt(String text) {
+    String t = text.trim();
+    if (t.isEmpty) return null;
+    const tamilDigits = {
+      '௦': '0', '௧': '1', 'உ': '2', '௩': '3', '௪': '4',
+      '௫': '5', '௬': '6', '௭': '7', '௮': '8', '௯': '9',
+    };
+    tamilDigits.forEach((k, v) => t = t.replaceAll(k, v));
+    return int.tryParse(t);
+  }
+
+  double? _parseTamilDouble(String text) {
+    String t = text.trim();
+    if (t.isEmpty) return null;
+    const tamilDigits = {
+      '௦': '0', '௧': '1', 'உ': '2', '௩': '3', '௪': '4',
+      '௫': '5', '௬': '6', '௭': '7', '௮': '8', '௯': '9',
+    };
+    tamilDigits.forEach((k, v) => t = t.replaceAll(k, v));
+    return double.tryParse(t);
+  }
+
   void _readFormFields() {
-    _profile.age = int.tryParse(_ageController.text.trim());
-    _profile.familyIncome = int.tryParse(_familyIncomeController.text.trim());
-    _profile.ownIncome = int.tryParse(_ownIncomeController.text.trim());
-    _profile.otherIncome = int.tryParse(_otherIncomeController.text.trim());
-    _profile.pensionAmount = int.tryParse(_pensionAmountController.text.trim());
-    _profile.landWetAcres = double.tryParse(_landWetController.text.trim());
-    _profile.landDryAcres = double.tryParse(_landDryController.text.trim());
-    _profile.electricityUnitsYear = int.tryParse(_electricityUnitsController.text.trim());
-    _profile.childrenCount = int.tryParse(_childrenCountController.text.trim());
-    _profile.depChildrenCount = int.tryParse(_depChildrenCountController.text.trim());
-    _profile.familyMembersCount = int.tryParse(_familyMembersCountController.text.trim());
+    _profile.age = _parseTamilInt(_ageController.text);
+    _profile.familyIncome = _parseTamilInt(_familyIncomeController.text);
+    _profile.ownIncome = _parseTamilInt(_ownIncomeController.text);
+    _profile.otherIncome = _parseTamilInt(_otherIncomeController.text);
+    _profile.pensionAmount = _parseTamilInt(_pensionAmountController.text);
+    _profile.landWetAcres = _parseTamilDouble(_landWetController.text);
+    _profile.landDryAcres = _parseTamilDouble(_landDryController.text);
+    _profile.electricityUnitsYear = _parseTamilInt(_electricityUnitsController.text);
+    _profile.childrenCount = _parseTamilInt(_childrenCountController.text);
+    _profile.depChildrenCount = _parseTamilInt(_depChildrenCountController.text);
+    _profile.familyMembersCount = _parseTamilInt(_familyMembersCountController.text);
 
     // Derivations
     if ((_profile.landWetAcres != null && _profile.landWetAcres! > 5) ||
@@ -306,6 +329,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final int completeness = _profile.calculateCompletenessPercent();
     final sectionCounts = _profile.getSectionCompletionCounts();
 
+    final isTa = Provider.of<LanguageProvider>(context).isTamil;
+
     return Scaffold(
       body: SafeArea(
         child: Column(
@@ -321,7 +346,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        'Profile Completeness',
+                        isTa ? 'சுயவிவர நிறைவு' : 'Profile Completeness',
                         style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                       ),
                       Text(
@@ -372,21 +397,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text(
-                                'Tell us about yourself so we can find your schemes.',
-                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF1E3A8A)),
+                              Text(
+                                isTa
+                                    ? 'உங்களுக்குரிய திட்டங்களைக் கண்டறிய உங்களைப் பற்றிய விவரங்களைக் குறிப்பிடவும்.'
+                                    : 'Tell us about yourself so we can find your schemes.',
+                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF1E3A8A)),
                               ),
                               const SizedBox(height: 4),
-                              const Text(
-                                'You can skip any question.',
-                                style: TextStyle(fontSize: 13, color: Colors.black87),
+                              Text(
+                                isTa ? 'எந்தவொரு கேள்வியையும் தவிர்க்கலாம்.' : 'You can skip any question.',
+                                style: const TextStyle(fontSize: 13, color: Colors.black87),
                               ),
                               const SizedBox(height: 8),
                               Align(
                                 alignment: Alignment.centerRight,
                                 child: TextButton(
                                   onPressed: widget.onBackToDashboard,
-                                  child: const Text('Skip for now', style: TextStyle(fontWeight: FontWeight.bold)),
+                                  child: Text(
+                                    isTa ? 'இப்போது தவிர்க்க' : 'Skip for now',
+                                    style: const TextStyle(fontWeight: FontWeight.bold),
+                                  ),
                                 ),
                               ),
                             ],
@@ -408,17 +438,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             children: [
                               const Icon(Icons.cloud_sync, color: Colors.amber, size: 22),
                               const SizedBox(width: 8),
-                              const Expanded(
+                              Expanded(
                                 child: Text(
-                                  'Sign in to sync your profile across devices.',
-                                  style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+                                  isTa
+                                    ? 'உங்கள் சுயவிவரத்தை சாதனங்களில் ஒத்திசைக்க உள்நுழையவும்.'
+                                    : 'Sign in to sync your profile across devices.',
+                                  style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
                                 ),
                               ),
                               TextButton(
                                 onPressed: () {
                                   Navigator.push(context, MaterialPageRoute(builder: (_) => const LogInScreen()));
                                 },
-                                child: const Text('Log In', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                                child: Text(isTa ? 'உள்நுழைக' : 'Log In', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                               ),
                             ],
                           ),
@@ -435,15 +467,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             title: Text(
                               authProvider.userDisplayName?.isNotEmpty == true
                                   ? authProvider.userDisplayName!
-                                  : (userEmail ?? 'Signed In'),
+                                  : (userEmail ?? (isTa ? 'உள்நுழைந்துள்ளீர்கள்' : 'Signed In')),
                               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                             ),
-                            subtitle: Text('Signed in as $userEmail', style: const TextStyle(fontSize: 12)),
+                            subtitle: Text(
+                              isTa ? '$userEmail ஆக உள்நுழைந்துள்ளீர்கள்' : 'Signed in as $userEmail',
+                              style: const TextStyle(fontSize: 12),
+                            ),
                             trailing: OutlinedButton(
                               onPressed: () {
                                 Navigator.push(context, MaterialPageRoute(builder: (_) => const AccountScreen()));
                               },
-                              child: const Text('Account', style: TextStyle(fontSize: 12)),
+                              child: Text(isTa ? 'கணக்கு' : 'Account', style: const TextStyle(fontSize: 12)),
                             ),
                           ),
                         ),
@@ -457,14 +492,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(color: Colors.blue.withValues(alpha: 0.2)),
                         ),
-                        child: const Row(
+                        child: Row(
                           children: [
-                            Icon(Icons.shield_outlined, size: 18, color: Colors.blue),
-                            SizedBox(width: 8),
+                            const Icon(Icons.shield_outlined, size: 18, color: Colors.blue),
+                            const SizedBox(width: 8),
                             Expanded(
                               child: Text(
-                                'Only age, gender, income band, marital status, disability % & scheme flags are synced. District, community, ration card & land details stay on your phone.',
-                                style: TextStyle(fontSize: 12, color: Colors.blue, fontWeight: FontWeight.w500),
+                                isTa
+                                  ? 'வயது, பாலினம், வருமானம், திருமண நிலை & மாற்றுத்திறன் விவரங்கள் மட்டுமே சேமிக்கப்படும். மாவட்டம், சமூகம், ரேஷன் கார்டு விவரங்கள் உங்கள் மொபைலிலேயே பாதுகாப்பாக இருக்கும்.'
+                                  : 'Only age, gender, income band, marital status, disability % & scheme flags are synced. District, community, ration card & land details stay on your phone.',
+                                style: const TextStyle(fontSize: 12, color: Colors.blue, fontWeight: FontWeight.w500),
                               ),
                             ),
                           ],
@@ -474,51 +511,65 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       // 7 Collapsible Sections
                       _buildSectionTile(
                         index: 0,
-                        title: 'Personal details',
-                        completionText: '${sectionCounts['Personal details']!['filled']} of ${sectionCounts['Personal details']!['total']} answered',
-                        children: _buildPersonalDetailsFields(),
+                        title: isTa ? 'தனிப்பட்ட விவரங்கள்' : 'Personal details',
+                        completionText: isTa
+                            ? '${sectionCounts['Personal details']!['total']} இல் ${sectionCounts['Personal details']!['filled']} பூர்த்தி செய்யப்பட்டுள்ளது'
+                            : '${sectionCounts['Personal details']!['filled']} of ${sectionCounts['Personal details']!['total']} answered',
+                        children: _buildPersonalDetailsFields(isTa),
                       ),
 
                       _buildSectionTile(
                         index: 1,
-                        title: 'Family',
-                        completionText: '${sectionCounts['Family']!['filled']} of ${sectionCounts['Family']!['total']} answered',
-                        children: _buildFamilyFields(),
+                        title: isTa ? 'குடும்ப விவரங்கள்' : 'Family',
+                        completionText: isTa
+                            ? '${sectionCounts['Family']!['total']} இல் ${sectionCounts['Family']!['filled']} பூர்த்தி செய்யப்பட்டுள்ளது'
+                            : '${sectionCounts['Family']!['filled']} of ${sectionCounts['Family']!['total']} answered',
+                        children: _buildFamilyFields(isTa),
                       ),
 
                       _buildSectionTile(
                         index: 2,
-                        title: 'Education',
-                        completionText: '${sectionCounts['Education']!['filled']} of ${sectionCounts['Education']!['total']} answered',
-                        children: _buildEducationFields(),
+                        title: isTa ? 'கல்வி' : 'Education',
+                        completionText: isTa
+                            ? '${sectionCounts['Education']!['total']} இல் ${sectionCounts['Education']!['filled']} பூர்த்தி செய்யப்பட்டுள்ளது'
+                            : '${sectionCounts['Education']!['filled']} of ${sectionCounts['Education']!['total']} answered',
+                        children: _buildEducationFields(isTa),
                       ),
 
                       _buildSectionTile(
                         index: 3,
-                        title: 'Work & income',
-                        completionText: '${sectionCounts['Work & income']!['filled']} of ${sectionCounts['Work & income']!['total']} answered',
-                        children: _buildWorkIncomeFields(),
+                        title: isTa ? 'பணி & வருமானம்' : 'Work & income',
+                        completionText: isTa
+                            ? '${sectionCounts['Work & income']!['total']} இல் ${sectionCounts['Work & income']!['filled']} பூர்த்தி செய்யப்பட்டுள்ளது'
+                            : '${sectionCounts['Work & income']!['filled']} of ${sectionCounts['Work & income']!['total']} answered',
+                        children: _buildWorkIncomeFields(isTa),
                       ),
 
                       _buildSectionTile(
                         index: 4,
-                        title: 'Assets & household',
-                        completionText: '${sectionCounts['Assets & household']!['filled']} of ${sectionCounts['Assets & household']!['total']} answered',
-                        children: _buildAssetsHouseholdFields(),
+                        title: isTa ? 'சொத்துக்கள் & குடும்ப உடைமைகள்' : 'Assets & household',
+                        completionText: isTa
+                            ? '${sectionCounts['Assets & household']!['total']} இல் ${sectionCounts['Assets & household']!['filled']} பூர்த்தி செய்யப்பட்டுள்ளது'
+                            : '${sectionCounts['Assets & household']!['filled']} of ${sectionCounts['Assets & household']!['total']} answered',
+                        children: _buildAssetsHouseholdFields(isTa),
                       ),
 
                       _buildSectionTile(
                         index: 5,
-                        title: 'Health',
-                        completionText: '${sectionCounts['Health']!['filled']} of ${sectionCounts['Health']!['total']} answered',
-                        children: _buildHealthFields(),
+                        title: isTa ? 'சுகாதாரம்' : 'Health',
+                        completionText: isTa
+                            ? '${sectionCounts['Health']!['total']} இல் ${sectionCounts['Health']!['filled']} பூர்த்தி செய்யப்பட்டுள்ளது'
+                            : '${sectionCounts['Health']!['filled']} of ${sectionCounts['Health']!['total']} answered',
+                        children: _buildHealthFields(isTa),
                       ),
 
                       _buildSectionTile(
                         index: 6,
-                        title: 'Additional details',
-                        completionText: '${sectionCounts['Additional details']!['filled']} of ${sectionCounts['Additional details']!['total']} answered',
-                        children: _buildAdditionalDetailsFields(),
+                        title: isTa ? 'கூடுதல் விவரங்கள்' : 'Additional details',
+                        completionText: isTa
+                            ? '${sectionCounts['Additional details']!['total']} இல் ${sectionCounts['Additional details']!['filled']} பூர்த்தி செய்யப்பட்டுள்ளது'
+                            : '${sectionCounts['Additional details']!['filled']} of ${sectionCounts['Additional details']!['total']} answered',
+                        children: _buildAdditionalDetailsFields(isTa),
                       ),
 
                       const SizedBox(height: 24),
@@ -548,7 +599,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                       ),
                       onPressed: _handleBackToDashboard,
-                      child: const Text('Back to dashboard', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                      child: Text(
+                        isTa ? 'முதன்மைப் பக்கம் திரும்புக' : 'Back to dashboard',
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -568,7 +622,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               height: 20,
                               child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                             )
-                          : const Text('Save profile', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                          : Text(
+                              isTa ? 'சுயவிவரத்தை சேமிக்க' : 'Save profile',
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                            ),
                     ),
                   ),
                 ],
@@ -617,7 +674,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   // --- SECTION 1: Personal details ---
-  List<Widget> _buildPersonalDetailsFields() {
+  List<Widget> _buildPersonalDetailsFields([bool isTa = false]) {
     return [
       Row(
         children: [
@@ -625,15 +682,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: TextFormField(
               controller: _ageController,
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: 'Age (Years)',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.cake),
+              decoration: InputDecoration(
+                labelText: isTa ? 'வயது (ஆண்டுகள்)' : 'Age (Years)',
+                border: const OutlineInputBorder(),
+                prefixIcon: const Icon(Icons.cake),
               ),
               validator: (val) {
                 if (val != null && val.isNotEmpty) {
-                  final parsed = int.tryParse(val);
-                  if (parsed == null || parsed < 0 || parsed > 120) return 'Enter 0 - 120';
+                  final parsed = _parseTamilInt(val);
+                  if (parsed == null || parsed < 0 || parsed > 120) {
+                    return isTa ? '0 முதல் 120 வரை உள்ளிடவும்' : 'Enter 0 - 120';
+                  }
                 }
                 return null;
               },
@@ -645,16 +704,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: DropdownButtonFormField<String>(
               initialValue: _profile.gender,
               isExpanded: true,
-              decoration: const InputDecoration(
-                labelText: 'Gender',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.person),
+              decoration: InputDecoration(
+                labelText: isTa ? 'பாலினம்' : 'Gender',
+                border: const OutlineInputBorder(),
+                prefixIcon: const Icon(Icons.person),
               ),
-              items: const [
-                DropdownMenuItem(value: 'F', child: Text('Female')),
-                DropdownMenuItem(value: 'M', child: Text('Male')),
-                DropdownMenuItem(value: 'O', child: Text('Other')),
-                DropdownMenuItem(value: 'prefer_not_to_say', child: Text('Prefer not to say')),
+              items: [
+                DropdownMenuItem(value: 'F', child: Text(isTa ? 'பெண் (Female)' : 'Female')),
+                DropdownMenuItem(value: 'M', child: Text(isTa ? 'ஆண் (Male)' : 'Male')),
+                DropdownMenuItem(value: 'O', child: Text(isTa ? 'மற்றவை (Other)' : 'Other')),
+                DropdownMenuItem(value: 'prefer_not_to_say', child: Text(isTa ? 'கூற விரும்பவில்லை' : 'Prefer not to say')),
               ],
               onChanged: (val) {
                 _profile.gender = val;
@@ -668,10 +727,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       DropdownButtonFormField<String>(
         initialValue: _profile.district,
         isExpanded: true,
-        decoration: const InputDecoration(
-          labelText: 'District',
-          border: OutlineInputBorder(),
-          prefixIcon: Icon(Icons.location_city),
+        decoration: InputDecoration(
+          labelText: isTa ? 'மாவட்டம்' : 'District',
+          border: const OutlineInputBorder(),
+          prefixIcon: const Icon(Icons.location_city),
         ),
         items: _tnDistricts.map((d) => DropdownMenuItem(value: d, child: Text(d))).toList(),
         onChanged: (val) {
@@ -686,14 +745,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: DropdownButtonFormField<String>(
               isExpanded: true,
               initialValue: _profile.areaType,
-              decoration: const InputDecoration(
-                labelText: 'Area type',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.map),
+              decoration: InputDecoration(
+                labelText: isTa ? 'பகுதி வகை' : 'Area type',
+                border: const OutlineInputBorder(),
+                prefixIcon: const Icon(Icons.map),
               ),
-              items: const [
-                DropdownMenuItem(value: 'Rural', child: Text('Rural')),
-                DropdownMenuItem(value: 'Urban', child: Text('Urban')),
+              items: [
+                DropdownMenuItem(value: 'Rural', child: Text(isTa ? 'கிராமப்புறம் (Rural)' : 'Rural')),
+                DropdownMenuItem(value: 'Urban', child: Text(isTa ? 'நகர்ப்புறம் (Urban)' : 'Urban')),
               ],
               onChanged: (val) {
                 _profile.areaType = val;
@@ -706,18 +765,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: DropdownButtonFormField<String>(
               initialValue: _profile.community,
               isExpanded: true,
-              decoration: const InputDecoration(
-                labelText: 'Community',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.people),
+              decoration: InputDecoration(
+                labelText: isTa ? 'சமூகம்' : 'Community',
+                border: const OutlineInputBorder(),
+                prefixIcon: const Icon(Icons.people),
               ),
-              items: const [
-                DropdownMenuItem(value: 'OC', child: Text('OC')),
-                DropdownMenuItem(value: 'BC', child: Text('BC')),
-                DropdownMenuItem(value: 'MBC', child: Text('MBC')),
-                DropdownMenuItem(value: 'SC', child: Text('SC')),
-                DropdownMenuItem(value: 'ST', child: Text('ST')),
-                DropdownMenuItem(value: 'prefer_not_to_say', child: Text('Prefer not to say')),
+              items: [
+                DropdownMenuItem(value: 'OC', child: Text(isTa ? 'பொதுப் பிரிவு (OC)' : 'OC')),
+                DropdownMenuItem(value: 'BC', child: Text(isTa ? 'பிற்படுத்தப்பட்டோர் (BC)' : 'BC')),
+                DropdownMenuItem(value: 'MBC', child: Text(isTa ? 'மிகவும் பிற்படுத்தப்பட்டோர் (MBC)' : 'MBC')),
+                DropdownMenuItem(value: 'SC', child: Text(isTa ? 'ஆதிதிராவிடர் (SC)' : 'SC')),
+                DropdownMenuItem(value: 'ST', child: Text(isTa ? 'பழங்குடியினர் (ST)' : 'ST')),
+                DropdownMenuItem(value: 'prefer_not_to_say', child: Text(isTa ? 'கூற விரும்பவில்லை' : 'Prefer not to say')),
               ],
               onChanged: (val) {
                 _profile.community = val;
@@ -728,31 +787,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ],
       ),
       const SizedBox(height: 6),
-      const Text(
-        'Optional, used only to check scheme conditions, stays on your phone',
-        style: TextStyle(fontSize: 11, color: Colors.grey),
+      Text(
+        isTa
+            ? 'விருப்பத்தேர்வு, திட்ட நிபந்தனைகளைச் சரிபார்க்க மட்டுமே, உங்கள் மொபைலிலேயே இருக்கும்'
+            : 'Optional, used only to check scheme conditions, stays on your phone',
+        style: const TextStyle(fontSize: 11, color: Colors.grey),
       ),
       const SizedBox(height: 8),
     ];
   }
 
   // --- SECTION 2: Family ---
-  List<Widget> _buildFamilyFields() {
+  List<Widget> _buildFamilyFields([bool isTa = false]) {
     return [
       DropdownButtonFormField<String>(
         isExpanded: true,
         initialValue: _profile.marital,
-        decoration: const InputDecoration(
-          labelText: 'Marital status',
-          border: OutlineInputBorder(),
-          prefixIcon: Icon(Icons.favorite),
+        decoration: InputDecoration(
+          labelText: isTa ? 'திருமண நிலை' : 'Marital status',
+          border: const OutlineInputBorder(),
+          prefixIcon: const Icon(Icons.favorite),
         ),
-        items: const [
-          DropdownMenuItem(value: 'unmarried', child: Text('Unmarried')),
-          DropdownMenuItem(value: 'married', child: Text('Married')),
-          DropdownMenuItem(value: 'widowed', child: Text('Widowed')),
-          DropdownMenuItem(value: 'deserted', child: Text('Deserted or divorced')),
-          DropdownMenuItem(value: 'prefer_not_to_say', child: Text('Prefer not to say')),
+        items: [
+          DropdownMenuItem(value: 'unmarried', child: Text(isTa ? 'மணமாகாதவர் (Unmarried)' : 'Unmarried')),
+          DropdownMenuItem(value: 'married', child: Text(isTa ? 'திருமணமானவர் (Married)' : 'Married')),
+          DropdownMenuItem(value: 'widowed', child: Text(isTa ? 'விதவை (Widowed)' : 'Widowed')),
+          DropdownMenuItem(value: 'deserted', child: Text(isTa ? 'கைவிடப்பட்டவர் / விவாகரத்து பெற்றவர்' : 'Deserted or divorced')),
+          DropdownMenuItem(value: 'prefer_not_to_say', child: Text(isTa ? 'கூற விரும்பவில்லை' : 'Prefer not to say')),
         ],
         onChanged: (val) {
           _profile.marital = val;
@@ -1038,7 +1099,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   // --- SECTION 3: Education ---
-  List<Widget> _buildEducationFields() {
+  List<Widget> _buildEducationFields([bool isTa = false]) {
     bool isStudent = _profile.role == 'School student' ||
         _profile.role == 'College student' ||
         _profile.role == 'Higher studies';
@@ -1261,7 +1322,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   // --- SECTION 4: Work & income ---
-  List<Widget> _buildWorkIncomeFields() {
+  List<Widget> _buildWorkIncomeFields([bool isTa = false]) {
     return [
       DropdownButtonFormField<String>(
         initialValue: _profile.workStatus,
@@ -1768,7 +1829,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   // --- SECTION 5: Assets & household ---
-  List<Widget> _buildAssetsHouseholdFields() {
+  List<Widget> _buildAssetsHouseholdFields([bool isTa = false]) {
     return [
       CheckboxListTile(
         title: const Text('Owns a personal four-wheeler (car or jeep)'),
@@ -1971,7 +2032,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   // --- SECTION 6: Health ---
-  List<Widget> _buildHealthFields() {
+  List<Widget> _buildHealthFields([bool isTa = false]) {
     return [
       Card(
         elevation: 0,
@@ -2103,7 +2164,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   // --- SECTION 7: Additional details ---
-  List<Widget> _buildAdditionalDetailsFields() {
+  List<Widget> _buildAdditionalDetailsFields([bool isTa = false]) {
     return [
       CheckboxListTile(
         title: const Text('Destitute / no family support'),

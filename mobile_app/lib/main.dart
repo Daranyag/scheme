@@ -11,6 +11,7 @@ import 'screens/login_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/welcome_screen.dart';
 import 'screens/data_sources_screen.dart';
+import 'screens/settings_screen.dart';
 import 'services/api_service.dart';
 import 'services/dio_client.dart';
 
@@ -237,6 +238,8 @@ class _MainScreenState extends State<MainScreen> {
   @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
+    final langProvider = Provider.of<LanguageProvider>(context);
+    final isTa = langProvider.isTamil;
 
     return Scaffold(
       appBar: AppBar(
@@ -256,9 +259,9 @@ class _MainScreenState extends State<MainScreen> {
               ),
             ),
             const SizedBox(width: 10),
-            const Text(
-              'Thittam',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+            Text(
+              isTa ? 'திட்டம்' : 'Thittam',
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
             ),
           ],
         ),
@@ -279,7 +282,7 @@ class _MainScreenState extends State<MainScreen> {
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        'Fetching...',
+                        isTa ? 'புதுப்பிக்கிறது...' : 'Fetching...',
                         style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onPrimary),
                       ),
                     ],
@@ -291,7 +294,7 @@ class _MainScreenState extends State<MainScreen> {
           ),
           IconButton(
             icon: const Icon(Icons.storage, size: 26),
-            tooltip: 'Data & Sources',
+            tooltip: isTa ? 'தரவு மற்றும் மூலங்கள்' : 'Data & Sources',
             onPressed: () {
               Navigator.push(
                 context,
@@ -300,17 +303,32 @@ class _MainScreenState extends State<MainScreen> {
             },
           ),
           IconButton(
+            icon: const Icon(Icons.settings, size: 24),
+            tooltip: isTa ? 'செயலியின் அமைப்புகள்' : 'App Settings',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const SettingsScreen()),
+              );
+            },
+          ),
+          IconButton(
             icon: Icon(
               authProvider.isAuthenticated ? Icons.account_circle : Icons.account_circle_outlined,
               size: 28,
             ),
-            tooltip: authProvider.isAuthenticated ? 'Account Settings' : 'Sign In / Account',
-            onPressed: () {
+            tooltip: authProvider.isAuthenticated
+                ? (isTa ? 'கணக்கு மற்றும் சுயவிவர விவரங்கள்' : 'Account & Profile Details')
+                : (isTa ? 'உள்நுழைக / கணக்கு' : 'Sign In / Account'),
+            onPressed: () async {
               if (authProvider.isAuthenticated) {
-                Navigator.push(
+                final result = await Navigator.push<int>(
                   context,
                   MaterialPageRoute(builder: (_) => const AccountScreen()),
                 );
+                if (result != null && mounted) {
+                  _onItemTapped(result);
+                }
               } else {
                 Navigator.push(
                   context,
@@ -324,22 +342,22 @@ class _MainScreenState extends State<MainScreen> {
       ),
       body: _widgetOptions.elementAt(_selectedIndex),
       bottomNavigationBar: BottomNavigationBar(
-        items: const <BottomNavigationBarItem>[
+        items: <BottomNavigationBarItem>[
           BottomNavigationBarItem(
-            icon: Icon(Icons.dashboard),
-            label: 'Dashboard',
+            icon: const Icon(Icons.dashboard),
+            label: isTa ? 'முதன்மைப் பக்கம்' : 'Dashboard',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'My Profile',
+            icon: const Icon(Icons.person),
+            label: isTa ? 'சுயவிவரம்' : 'My Profile',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.search),
-            label: 'Scheme Finder',
+            icon: const Icon(Icons.search),
+            label: isTa ? 'திட்டத் தேடல்' : 'Scheme Finder',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.chat),
-            label: 'AI Chat',
+            icon: const Icon(Icons.chat),
+            label: isTa ? 'உரையாடல்' : 'AI Chat',
           ),
         ],
         currentIndex: _selectedIndex,

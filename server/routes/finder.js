@@ -26,6 +26,7 @@ router.post('/', finderLimiter, upload.array('files', 5), async (req, res) => {
     const { link, text, profile } = req.body;
     let extractedText = text || '';
     const files = req.files || [];
+    const images = []; // For Gemini Vision if we handle images
 
     try {
         let profileObj = {};
@@ -34,24 +35,90 @@ router.post('/', finderLimiter, upload.array('files', 5), async (req, res) => {
         }
 
         // Process link
+        let linkFetchFailed = false;
+        let linkFetchEmpty = false;
         if (link) {
             try {
                 const response = await axios.get(link, {
-                    timeout: 12000,
+                    timeout: 10000,
                     headers: {
-                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
                     }
                 });
-                const $ = cheerio.load(response.data);
-                $('script, style').remove();
-                extractedText += '\n\n' + $('body').text().replace(/\s+/g, ' ').trim();
+
+                const html = typeof response.data === 'string' ? response.data : response.data.toString('utf8');
+                const $ = cheerio.load(html);
+
+                let pageContent = '';
+
+                // 1. Check for Next.js SSR state (__NEXT_DATA__) commonly used in Vikaspedia / modern portals
+                const nextDataRaw = $('#__NEXT_DATA__').text();
+                if (nextDataRaw) {
+                    try {
+                        const parsedNext = JSON.parse(nextDataRaw);
+                        const ssr = parsedNext.props?.pageProps?.ssrPageContent || parsedNext.props?.pageProps?.schemeData;
+                        if (ssr) {
+                            if (ssr.title) pageContent += `Scheme Name: ${ssr.title}\n`;
+                            if (ssr.summery || ssr.summary) pageContent += `Summary: ${ssr.summery || ssr.summary}\n`;
+                            if (ssr.content) {
+                                const $c = cheerio.load(ssr.content);
+                                pageContent += $c.text().replace(/\s+/g, ' ').trim() + '\n';
+                            }
+                            if (ssr.body) {
+                                const $b = cheerio.load(ssr.body);
+                                pageContent += $b.text().replace(/\s+/g, ' ').trim() + '\n';
+                            }
+                        }
+                    } catch (_) {}
+                }
+
+                // 2. Extract meta title & description
+                const metaTitle = $('meta[property="og:title"]').attr('content') || $('title').text() || '';
+                const metaDesc = $('meta[name="description"]').attr('content') || $('meta[property="og:description"]').attr('content') || '';
+                if (metaTitle && !pageContent.includes(metaTitle)) {
+                    pageContent += `Title: ${metaTitle.trim()}\n`;
+                }
+                if (metaDesc && !pageContent.includes(metaDesc)) {
+                    pageContent += `Description: ${metaDesc.trim()}\n`;
+                }
+
+                // 3. Extract text from primary body elements
+                $('script, style, noscript, nav, footer, header, svg').remove();
+                const mainBodyText = $('main, article, #content, .content, body').text().replace(/\s+/g, ' ').trim();
+                if (mainBodyText.length > 50) {
+                    pageContent += '\n' + mainBodyText;
+                }
+
+                if (pageContent.trim().length > 30) {
+                    extractedText = `Source Link: ${link}\n\n${pageContent.trim()}` + (extractedText ? `\n\nUser Notes:\n${extractedText}` : '');
+                } else {
+                    linkFetchEmpty = true;
+                }
             } catch (err) {
-                extractedText += '\n\n[Note: Failed to fetch the provided link.]';
+                linkFetchFailed = true;
+            }
+        }
+
+        // If user submitted a link and no content could be read from it or from text/files
+        if (link && !text && files.length === 0) {
+            if (linkFetchFailed) {
+                return res.status(200).json({
+                    ok: false,
+                    message: "Unable to access this web link (website timed out or blocked connection). Please copy and paste the scheme details or text directly.",
+                    schemes: []
+                });
+            }
+            if (linkFetchEmpty || !extractedText || extractedText.trim().length < 25) {
+                return res.status(200).json({
+                    ok: false,
+                    message: "No scheme found on this web page. Please verify the URL or paste the scheme description directly.",
+                    schemes: []
+                });
             }
         }
 
         // Process files (PDFs)
-        const images = []; // For Gemini Vision if we handle images
         for (const file of files) {
             const ext = path.extname(file.originalname).toLowerCase();
             if (ext === '.pdf') {
@@ -163,32 +230,32 @@ router.post('/', finderLimiter, upload.array('files', 5), async (req, res) => {
         // 2. Comprehensive AI Prompt to analyze ANY scheme name, pasted description, link, or document
         const prompt = `
 You are an expert government welfare scheme eligibility analyzer.
-Analyze the following text, scheme name, description, or document. Even if this scheme is not in any pre-existing database, understand what scheme it is, extract its exact benefits, eligibility rules, and required documents.
+Carefully analyze the following text, scheme name, description, or webpage content. Extract information ONLY for the specific scheme described in the provided content. Do NOT substitute or guess other unrelated schemes.
 
 User Profile:
 ${JSON.stringify(profileObj)}
 
-Scheme Text / Description / Name:
+Scheme Content (from link, pasted text, or document):
 ${extractedText}
 
 Task:
-1. Identify the Scheme Name (e.g., if user only wrote "Moovalur Ramamirtham" or "free cycle scheme", identify it cleanly).
-2. Summarize the Benefit (monetary amount, asset, pension, kit, or assistance).
-3. Extract Eligibility Criteria and Required Documents as an array of clear strings.
+1. Identify the Exact Scheme Name described in the content above (e.g. if the text describes "Vetri Payanam Thittam" or "Vidiyal Payanam", do NOT output "Maternity Benefit" or any other scheme).
+2. Summarize the Benefit (monetary amount, asset, pension, free bus travel, kit, or assistance) specifically mentioned for this scheme.
+3. Extract Eligibility Criteria and Required Documents as an array of clear strings based on the text.
 4. Compare with the User Profile to determine Verdict:
-   - "eligible": if the user meets the known criteria (e.g. woman, pregnant, income, student, age, etc.)
-   - "not_eligible": if user explicitly violates a criterion (e.g. male for maternity/women schemes, or income exceeds limit)
+   - "eligible": if the user meets the known criteria (e.g. woman, resident of TN, pregnant, income, student, age, etc.)
+   - "not_eligible": if user explicitly violates a criterion (e.g. male for women-only schemes, or income exceeds limit)
    - "need_info": if essential profile data is missing to be sure
 5. Provide a clear Reason explaining why they are eligible or not eligible based on their profile.
-6. Extract simple machine-readable rules in "rules" object (e.g. {"gender": "F", "income": {"$lt": 250000}} or {"hasNewborn": true} or {}).
+6. Extract simple machine-readable rules in "rules" object (e.g. {"gender": "F"} or {"gender": "F", "income": {"$lt": 250000}} or {}).
 
 Return ONLY valid JSON in this exact structure:
 {
   "schemes": [
     {
-      "name": "Scheme Name",
+      "name": "Exact Scheme Name",
       "nameTamil": "தமிழ் பெயர் (if applicable)",
-      "category": "Social Welfare | Health | Education | Pension | Maternity & Child Welfare | Agriculture",
+      "category": "Social Welfare | Health | Education | Pension | Transport & Concessions | Maternity & Child Welfare | Agriculture",
       "benefit": "Detailed benefit description",
       "criteria": ["Eligibility condition 1", "Condition 2", "Required document 1"],
       "verdict": "eligible",
@@ -196,8 +263,7 @@ Return ONLY valid JSON in this exact structure:
       "rules": {}
     }
   ]
-}
-`;
+}`;
 
         const contents = [{ role: 'user', parts: [{ text: prompt }] }];
         if (images.length > 0) {
@@ -237,12 +303,33 @@ Return ONLY valid JSON in this exact structure:
                 const mapped = searchRes.results.map(r => ({
                     name: r.name,
                     benefit: r.benefit,
-                    criteria: r.docs || [],
+                    criteria: r.docs || r.requiredDocuments || [],
                     verdict: r.searchVerdict || 'need_info',
                     reason: 'Verified from database',
                     source: 'database'
                 }));
                 return res.json({ schemes: mapped });
+            }
+
+            // If a URL or text was provided with a scheme title, extract cleanly from the text
+            const titleMatch = extractedText.match(/(?:Scheme Name|Title):\s*([^\n\r]+)/i);
+            const summaryMatch = extractedText.match(/(?:Summary|Benefit):\s*([^\n\r]+)/i);
+            if (titleMatch && titleMatch[1]) {
+                const sName = titleMatch[1].trim();
+                const sBenefit = summaryMatch ? summaryMatch[1].trim() : 'Official government welfare assistance';
+                return res.json({
+                    schemes: [
+                        {
+                            name: sName,
+                            category: 'Social Welfare',
+                            benefit: sBenefit,
+                            criteria: ['Must be a resident of Tamil Nadu', 'Check official portal guidelines'],
+                            verdict: 'need_info',
+                            reason: 'Extracted directly from the provided scheme webpage.',
+                            rules: {}
+                        }
+                    ]
+                });
             }
         } catch (fbErr) {}
 

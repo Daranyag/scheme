@@ -93,6 +93,7 @@ class AuthProvider extends ChangeNotifier {
   Future<void> setGuestMode() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_prefGuestKey, true);
+    await UserProfile.clearFromPrefs();
     _guestChoiceSaved = true;
     _isGuestMode = true;
     _isAuthenticated = false;
@@ -195,28 +196,37 @@ class AuthProvider extends ChangeNotifier {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setBool(_prefGuestKey, true);
 
-        // Seamlessly claim and migrate guest data in background without prompting
-        try {
-          final deviceId = await ApiService.getOrCreateDeviceId();
-          await DioClient.dio.post('/api/auth/claim-guest-data', data: {'deviceId': deviceId});
-        } catch (_) {}
+        // If fullProfile was returned directly in the login response, save it immediately
+        final returnedProfile = data['user']?['fullProfile'];
+        if (returnedProfile is Map<String, dynamic> && returnedProfile.isNotEmpty) {
+          await prefs.setString('user_profile_data', jsonEncode(returnedProfile));
+        }
 
-        // Fetch and restore full profile on manual login
-        final fullProfile = await ApiService.fetchFullProfile();
-        if (fullProfile != null && fullProfile.isNotEmpty) {
-          await prefs.setString('user_profile_data', jsonEncode(fullProfile));
-        } else {
-          // If server profile is empty, push local profile to server to ensure it's saved
-          final localProfileStr = prefs.getString('user_profile_data');
-          if (localProfileStr != null && localProfileStr.isNotEmpty) {
+        // Run background tasks (claim guest data and profile sync) asynchronously without delaying login
+        Future(() async {
+          try {
+            final deviceId = await ApiService.getOrCreateDeviceId();
+            await DioClient.dio.post('/api/auth/claim-guest-data', data: {'deviceId': deviceId});
+          } catch (_) {}
+
+          // If no profile was included in the login response, fetch or push in background
+          if (returnedProfile == null || (returnedProfile is Map && returnedProfile.isEmpty)) {
             try {
-              final localProfile = UserProfile.fromJson(jsonDecode(localProfileStr));
-              await ApiService.saveFullProfile(localProfile);
+              final fullProfile = await ApiService.fetchFullProfile();
+              if (fullProfile != null && fullProfile.isNotEmpty) {
+                await prefs.setString('user_profile_data', jsonEncode(fullProfile));
+              } else {
+                final localProfileStr = prefs.getString('user_profile_data');
+                if (localProfileStr != null && localProfileStr.isNotEmpty) {
+                  final localProfile = UserProfile.fromJson(jsonDecode(localProfileStr));
+                  await ApiService.saveFullProfile(localProfile);
+                }
+              }
             } catch (e) {
-              debugPrint('Failed to sync profile on login: $e');
+              debugPrint('Background profile sync on login: $e');
             }
           }
-        }
+        });
 
         return null; // Success
       }
