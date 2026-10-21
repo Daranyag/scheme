@@ -79,36 +79,64 @@ router.post('/sync', authenticateOwner, async (req, res) => {
     }
 });
 
-// GET /api/profile/full (Only for authenticated users)
+// GET /api/profile/full (Supports both authenticated users and guests with deviceId)
 router.get('/full', authenticateOwner, async (req, res) => {
     const owner = req.owner || {};
-    if (owner.type !== 'user') {
-        return res.status(403).json({ error: 'Only registered users can sync full profile' });
+    if (!owner.id) {
+        return res.status(403).json({ error: 'User token or deviceId is required' });
     }
     try {
-        const User = require('../models/User');
-        const user = await User.findById(owner.id);
-        if (!user) return res.status(404).json({ error: 'User not found' });
-        res.json({ fullProfile: user.fullProfile || {} });
+        if (owner.type === 'user') {
+            const User = require('../models/User');
+            const user = await User.findById(owner.id);
+            if (!user) return res.status(404).json({ error: 'User not found' });
+            return res.json({ fullProfile: user.fullProfile || {} });
+        } else {
+            // Guest mode: find in DiscoveryJob by deviceId
+            const job = await DiscoveryJob.findOne({ deviceId: owner.id });
+            const fullProfile = (job && job.profileSync && job.profileSync.fullProfile) || (job && job.profileSync) || {};
+            return res.json({ fullProfile });
+        }
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-// POST /api/profile/full (Only for authenticated users)
+// POST /api/profile/full (Supports both authenticated users and guests with deviceId)
 router.post('/full', authenticateOwner, async (req, res) => {
     const owner = req.owner || {};
     const { fullProfile } = req.body;
-    if (owner.type !== 'user') {
-        return res.status(403).json({ error: 'Only registered users can sync full profile' });
+    if (!owner.id) {
+        return res.status(403).json({ error: 'User token or deviceId is required' });
     }
     if (!fullProfile) {
         return res.status(400).json({ error: 'fullProfile is required' });
     }
     try {
-        const User = require('../models/User');
-        await User.findByIdAndUpdate(owner.id, { fullProfile });
-        res.json({ message: 'Full profile saved successfully' });
+        if (owner.type === 'user') {
+            const User = require('../models/User');
+            await User.findByIdAndUpdate(owner.id, { fullProfile });
+            return res.json({ message: 'Full profile saved successfully' });
+        } else {
+            // Guest mode: update or create in DiscoveryJob
+            let job = await DiscoveryJob.findOne({ deviceId: owner.id });
+            if (job) {
+                job.profileSync = job.profileSync || {};
+                job.profileSync.fullProfile = fullProfile;
+                job.markModified('profileSync');
+                await job.save();
+            } else {
+                job = new DiscoveryJob({
+                    deviceId: owner.id,
+                    userId: null,
+                    profileSync: { fullProfile },
+                    status: 'pending',
+                    nextRunAt: new Date()
+                });
+                await job.save();
+            }
+            return res.json({ message: 'Full profile saved successfully' });
+        }
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

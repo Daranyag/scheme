@@ -4,8 +4,8 @@ const Scheme = require('./models/Scheme');
 const fs = require('fs');
 const path = require('path');
 
-function validateStarterSchemes(schemes, filename) {
-  if (!Array.isArray(schemes) || schemes.length === 0) {
+function validateStarterSchemes(schemes, filename, allowEmpty = false) {
+  if (!Array.isArray(schemes) || (!allowEmpty && schemes.length === 0)) {
     throw new Error(`Validation Error: ${filename} is empty or not an array`);
   }
 
@@ -43,14 +43,18 @@ async function run() {
   validateStarterSchemes(data1, 'starter-schemes.json');
 
   console.log('Loading starter-schemes-additions.json...');
-  const data2 = JSON.parse(fs.readFileSync(filePath2, 'utf8'));
+  const data2 = fs.existsSync(filePath2) ? JSON.parse(fs.readFileSync(filePath2, 'utf8')) : [];
   console.log('Validating starter-schemes-additions.json...');
-  validateStarterSchemes(data2, 'starter-schemes-additions.json');
+  validateStarterSchemes(data2, 'starter-schemes-additions.json', true);
 
   const data = [...data1, ...data2];
   console.log(`Validation passed for all ${data.length} starter schemes.`);
 
   const mongoUri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/tn_schemes';
+  const isAtlas = mongoUri.includes('mongodb.net') || mongoUri.includes('mongodb+srv');
+  if (isAtlas && process.env.ALLOW_PROD_SEED !== 'true') {
+    throw new Error('Safety guard: Seeding to real Atlas database blocked. Set ALLOW_PROD_SEED=true if explicitly intended.');
+  }
   await mongoose.connect(mongoUri);
   console.log('Connected to MongoDB');
 

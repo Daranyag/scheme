@@ -1,13 +1,17 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import '../models/scheme.dart';
 import '../models/user_profile.dart';
 import '../services/api_service.dart';
 
 class FinderScreen extends StatefulWidget {
-  const FinderScreen({super.key});
+  final VoidCallback? onNavigateToDashboard;
+
+  const FinderScreen({super.key, this.onNavigateToDashboard});
 
   @override
   State<FinderScreen> createState() => _FinderScreenState();
@@ -22,6 +26,7 @@ class _FinderScreenState extends State<FinderScreen> with SingleTickerProviderSt
   bool _isAnalyzing = false;
   String? _analyzeStage;
   Map<String, dynamic>? _analysisResult;
+  final Set<String> _addedSchemeNames = {};
   String? _errorMessage;
   String? _errorCode;
 
@@ -111,7 +116,7 @@ class _FinderScreenState extends State<FinderScreen> with SingleTickerProviderSt
         }
       }
 
-      final streamedResponse = await request.send().timeout(const Duration(seconds: 25));
+      final streamedResponse = await request.send().timeout(const Duration(seconds: 90));
       final response = await http.Response.fromStream(streamedResponse);
 
       if (response.statusCode == 200) {
@@ -130,6 +135,13 @@ class _FinderScreenState extends State<FinderScreen> with SingleTickerProviderSt
           _analyzeStage = null;
         });
       }
+    } on TimeoutException {
+      setState(() {
+        _errorMessage = "The analysis took too long to complete. Please try again or paste scheme text directly.";
+        _errorCode = 'timeout';
+        _isAnalyzing = false;
+        _analyzeStage = null;
+      });
     } catch (e) {
       setState(() {
         _errorMessage = "Can't reach the server. Check that it is running and the address is correct.";
@@ -387,6 +399,113 @@ class _FinderScreenState extends State<FinderScreen> with SingleTickerProviderSt
                                 padding: const EdgeInsets.only(left: 8.0, top: 2.0),
                                 child: Text('• $c'),
                               )),
+                        ],
+
+                        // Add to Dashboard Action for eligible schemes
+                        if (isEligible) ...[
+                          const SizedBox(height: 14),
+                          Builder(builder: (btnCtx) {
+                            final schemeName = item['name']?.toString() ?? 'Extracted Scheme';
+                            final isAdded = _addedSchemeNames.contains(schemeName);
+
+                            return Row(
+                              children: [
+                                Expanded(
+                                  child: ElevatedButton.icon(
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: isAdded ? Colors.grey.shade700 : const Color(0xFF1E3A8A),
+                                      foregroundColor: Colors.white,
+                                      padding: const EdgeInsets.symmetric(vertical: 12),
+                                    ),
+                                    onPressed: isAdded
+                                        ? null
+                                        : () async {
+                                            final criteriaList = (item['criteria'] is List)
+                                                ? (item['criteria'] as List).map((e) => e.toString()).toList()
+                                                : <String>[];
+
+                                            final localSchemes = await ApiService.getLocalOrStarterSchemes();
+                                            final existing = localSchemes.schemes.cast<Scheme?>().firstWhere(
+                                              (s) => s != null && s.name.trim().toLowerCase() == schemeName.trim().toLowerCase(),
+                                              orElse: () => null,
+                                            );
+                                            final combinedCriteria = <String>{
+                                              ...criteriaList,
+                                              if (existing != null) ...existing.unmappedCriteria,
+                                              if (existing != null) ...existing.requiredDocuments,
+                                            }.toList();
+                                            final itemRules = (item['rules'] is Map && (item['rules'] as Map).isNotEmpty)
+                                                ? Map<String, dynamic>.from(item['rules'] as Map)
+                                                : null;
+
+                                            final newScheme = Scheme(
+                                              id: existing?.id ?? 'finder_' + DateTime.now().millisecondsSinceEpoch.toString(),
+                                              name: schemeName,
+                                              nameTamil: (item['nameTamil']?.toString().isNotEmpty ?? false)
+                                                  ? item['nameTamil']!.toString()
+                                                  : (existing?.nameTamil ?? ''),
+                                              category: (item['category']?.toString().isNotEmpty ?? false)
+                                                  ? item['category']!.toString()
+                                                  : (existing?.category ?? 'Social Welfare'),
+                                              benefit: (item['benefit']?.toString().isNotEmpty ?? false)
+                                                  ? item['benefit']!.toString()
+                                                  : (existing?.benefit ?? ''),
+                                              status: 'ACTIVE',
+                                              rules: itemRules ?? (existing != null && existing.rules.isNotEmpty
+                                                  ? existing.rules
+                                                  : <String, dynamic>{}),
+                                              unmappedCriteria: combinedCriteria,
+                                              requiredDocuments: combinedCriteria,
+                                              howToApply: (existing != null && existing.howToApply.isNotEmpty)
+                                                  ? existing.howToApply
+                                                  : [item['reason']?.toString() ?? 'Verified via Scheme Finder'],
+                                              officialLinks: [
+                                                SchemeLink(
+                                                  title: 'Official Source',
+                                                  url: _urlController.text.trim().isNotEmpty
+                                                      ? _urlController.text.trim()
+                                                      : (existing != null && existing.officialLinks.isNotEmpty
+                                                          ? existing.officialLinks.first.url
+                                                          : 'https://www.tn.gov.in'),
+                                                ),
+                                              ],
+                                              verify: true,
+                                              reviewStatus: 'approved',
+                                              verificationStatus: 'confirmed',
+                                              displayState: 'confirmed',
+                                            );
+
+                                            final ok = await ApiService.addSchemeToDashboard(newScheme);
+                                            if (!btnCtx.mounted) return;
+                                            if (ok) {
+                                              setState(() {
+                                                _addedSchemeNames.add(schemeName);
+                                              });
+                                              ScaffoldMessenger.of(btnCtx).showSnackBar(
+                                                SnackBar(
+                                                  content: Text('Added "$schemeName" to your Dashboard!'),
+                                                  backgroundColor: Colors.green,
+                                                  action: widget.onNavigateToDashboard != null
+                                                      ? SnackBarAction(
+                                                          label: 'View Dashboard',
+                                                          textColor: Colors.white,
+                                                          onPressed: widget.onNavigateToDashboard!,
+                                                        )
+                                                      : null,
+                                                ),
+                                              );
+                                            }
+                                          },
+                                    icon: Icon(isAdded ? Icons.check : Icons.add_to_photos),
+                                    label: Text(
+                                      isAdded ? 'Added to Dashboard' : 'Add to Dashboard',
+                                      style: const TextStyle(fontWeight: FontWeight.bold),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            );
+                          }),
                         ],
                       ],
                     ),

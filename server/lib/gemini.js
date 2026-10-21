@@ -75,9 +75,18 @@ function detectQuotaOrRateLimit(err) {
   };
 }
 
+let quotaExhaustedNotificationPrinted = false;
+
 function getQuotaExhaustedUntilTime() {
   const now = new Date();
   return new Date(now.getTime() + 3600000); // 1 hour window
+}
+
+function isQuotaExhausted() {
+  if (inMemoryQuotaExhaustedUntil && new Date() < inMemoryQuotaExhaustedUntil) {
+    return true;
+  }
+  return false;
 }
 
 async function getQuotaAndBudgetStatus() {
@@ -119,6 +128,12 @@ async function getQuotaAndBudgetStatus() {
 async function setQuotaExhausted(untilTime, errorCode = 'ai_quota_exhausted') {
   inMemoryQuotaExhaustedUntil = untilTime;
   inMemoryLastErrorCode = errorCode;
+
+  if (!quotaExhaustedNotificationPrinted) {
+    const timeStr = untilTime instanceof Date ? untilTime.toLocaleTimeString() : String(untilTime);
+    console.log(`AI quota exhausted until ${timeStr}. Continuing without AI.`);
+    quotaExhaustedNotificationPrinted = true;
+  }
 
   if (mongoose.connection.readyState === 1) {
     try {
@@ -257,6 +272,10 @@ function getModelsToTry(options = {}) {
     return [options.model];
   }
   const models = geminiConfig.getModels();
+  if (options.isBackground) {
+    const list = [models.backgroundModel, models.fallbackModel, models.mainModel].filter(Boolean);
+    return Array.from(new Set(list));
+  }
   const list = [models.mainModel, models.fallbackModel, models.autoSelectedModel].filter(Boolean);
   return Array.from(new Set(list));
 }
@@ -320,6 +339,37 @@ async function callGenerateContentStream(client, modelName, contents, config) {
 }
 
 async function generateContentWithRetry({ contents, systemInstruction, config = {}, options = {}, customClient, customDelays }) {
+  const { callGemini } = require('./aiGate');
+  const purpose = options.isChat || options.purpose === 'user' ? 'user' : (options.purpose === 'display' ? 'display' : (options.purpose || 'unspecified'));
+
+  const gateResult = await callGemini({
+    purpose,
+    execute: async () => {
+      return await executeGenerateContentWithRetryInternal({ contents, systemInstruction, config, options, customClient, customDelays });
+    },
+    options
+  });
+
+  if (!gateResult.ok) {
+    if (gateResult.code === 'ai_disabled' || gateResult.code === 'user_ai_disabled') {
+      const err = new Error(gateResult.error || 'AI is disabled');
+      err.code = gateResult.code;
+      err.status = 200;
+      throw err;
+    }
+    if (gateResult.rawError) {
+      throw gateResult.rawError;
+    }
+    const err = new Error(gateResult.error || 'Gemini call failed');
+    err.code = gateResult.code;
+    err.status = gateResult.code === 'ai_quota_exhausted' ? 429 : 500;
+    throw err;
+  }
+
+  return gateResult.data;
+}
+
+async function executeGenerateContentWithRetryInternal({ contents, systemInstruction, config = {}, options = {}, customClient, customDelays }) {
   // Check active quota exhaustion
   const status = await getQuotaAndBudgetStatus();
   if (status.quotaExhaustedUntil && new Date() < status.quotaExhaustedUntil) {
@@ -453,6 +503,37 @@ async function generateContentWithRetry({ contents, systemInstruction, config = 
 }
 
 async function generateContentStreamWithRetry({ contents, systemInstruction, config = {}, options = {}, customClient, customDelays }) {
+  const { callGemini } = require('./aiGate');
+  const purpose = options.isChat || options.purpose === 'user' ? 'user' : (options.purpose === 'display' ? 'display' : (options.purpose || 'unspecified'));
+
+  const gateResult = await callGemini({
+    purpose,
+    execute: async () => {
+      return await executeGenerateContentStreamWithRetryInternal({ contents, systemInstruction, config, options, customClient, customDelays });
+    },
+    options
+  });
+
+  if (!gateResult.ok) {
+    if (gateResult.code === 'ai_disabled' || gateResult.code === 'user_ai_disabled') {
+      const err = new Error(gateResult.error || 'AI is disabled');
+      err.code = gateResult.code;
+      err.status = 200;
+      throw err;
+    }
+    if (gateResult.rawError) {
+      throw gateResult.rawError;
+    }
+    const err = new Error(gateResult.error || 'Gemini stream failed');
+    err.code = gateResult.code;
+    err.status = gateResult.code === 'ai_quota_exhausted' ? 429 : 500;
+    throw err;
+  }
+
+  return gateResult.data;
+}
+
+async function executeGenerateContentStreamWithRetryInternal({ contents, systemInstruction, config = {}, options = {}, customClient, customDelays }) {
   const status = await getQuotaAndBudgetStatus();
   if (status.quotaExhaustedUntil && new Date() < status.quotaExhaustedUntil) {
     const err = new Error('The AI assistant has reached its usage limit for now. Please try again later.');
@@ -657,6 +738,9 @@ async function extractSchemeInformation(schemeName, pageText, options = {}) {
       modelUsed: res.modelUsed
     };
   } catch (err) {
+    if (err.code === 'ai_disabled') {
+      return { ok: false, errorType: 'ai_disabled', data: null };
+    }
     const mapped = mapGeminiErrorCode(err);
     return { ok: false, errorType: mapped.code === 'ai_quota_exhausted' ? 'ai_quota_exhausted' : 'ai_unavailable', data: null };
   }
@@ -704,6 +788,7 @@ function resetQuotaAndBudgetForTesting() {
   inMemoryQuotaExhaustedUntil = null;
   inMemoryLastErrorCode = null;
   loggedBackgroundBudgetExhausted = false;
+  quotaExhaustedNotificationPrinted = false;
   inMemoryDailyDate = getTodayDateString();
   inMemoryTotalCalls = 0;
   inMemoryChatCalls = 0;
@@ -720,5 +805,6 @@ module.exports = {
   detectQuotaOrRateLimit,
   getQuotaAndBudgetStatus,
   setQuotaExhausted,
+  isQuotaExhausted,
   resetQuotaAndBudgetForTesting
 };

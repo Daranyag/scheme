@@ -65,15 +65,57 @@ router.get('/activity', (req, res) => {
     });
 });
 
-router.get('/ai-usage', (req, res) => {
-    // Mock response for AI usage
-    res.json({
-        ok: true,
-        callsToday: 15,
-        dailyCap: 1500,
-        quotaExhausted: false,
-        callsSavedByHashing: 34
-    });
+router.get('/ai-usage', async (req, res) => {
+    try {
+        const { inMemoryMetrics, getDisplayAiCallsToday } = require('../lib/presenter');
+        const DisplayMetrics = require('../models/DisplayMetrics');
+        const today = new Date().toISOString().split('T')[0];
+        
+        let dbMetrics = null;
+        const mongoose = require('mongoose');
+        if (mongoose.connection.readyState === 1) {
+            dbMetrics = await DisplayMetrics.findOne({ date: today }).lean();
+        }
+
+        const algoSummaries = (dbMetrics?.algoSummaries || 0) + inMemoryMetrics.algoSummaries;
+        const aiSummaries = (dbMetrics?.aiSummaries || 0) + inMemoryMetrics.aiSummaries;
+        const totalSummaries = algoSummaries + aiSummaries || 1;
+        const cacheHits = (dbMetrics?.cacheHits || 0) + inMemoryMetrics.cacheHits;
+        const cacheMisses = (dbMetrics?.cacheMisses || 0) + inMemoryMetrics.cacheMisses;
+        const totalCacheReqs = cacheHits + cacheMisses || 1;
+        const cacheHitRate = ((cacheHits / totalCacheReqs) * 100).toFixed(1) + '%';
+        const displayAiCallsToday = await getDisplayAiCallsToday();
+
+        const rejections = (dbMetrics?.rejections || 0) + inMemoryMetrics.rejections;
+        const rejectionReasons = [
+            ...(dbMetrics?.rejectionReasons || []),
+            ...inMemoryMetrics.rejectionReasons
+        ].slice(-20);
+
+        res.json({
+            ok: true,
+            callsToday: 15,
+            dailyCap: 1500,
+            quotaExhausted: false,
+            callsSavedByHashing: 34,
+            displayMonitoring: {
+                summariesByEngine: {
+                    algorithm: algoSummaries,
+                    ai: aiSummaries,
+                    algorithmShare: ((algoSummaries / totalSummaries) * 100).toFixed(1) + '%',
+                    aiShare: ((aiSummaries / totalSummaries) * 100).toFixed(1) + '%'
+                },
+                cacheHitRate,
+                cacheHits,
+                cacheMisses,
+                rejections,
+                rejectionReasons,
+                displayAiCallsToday
+            }
+        });
+    } catch (e) {
+        res.status(500).json({ ok: false, error: e.message });
+    }
 });
 
 router.get('/alerts', async (req, res) => {

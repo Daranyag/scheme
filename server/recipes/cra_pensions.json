@@ -1,0 +1,15 @@
+{
+  "source": "cra_pensions",
+  "sourceId": "cra_pensions",
+  "name": "CRA Revenue Administration Pensions",
+  "url": "https://cra.tn.gov.in/about_schemes_t.php",
+  "baselineCompleteness": 85,
+  "selectors": {
+    "title": "h3, h2, .table-title",
+    "table": "table"
+  },
+  "fields": {
+    "amount": { "selector": "table tr td", "pattern": "₹?\\s*1[,.]200|₹?\\s*1[,.]500" },
+    "age": { "pattern": "வயது\\s*[-–]\\s*(\\d+)" }
+  }
+}

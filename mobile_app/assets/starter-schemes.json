@@ -1,0 +1,989 @@
+[
+  {
+    "name": "Kalaignar Magalir Urimai Thogai",
+    "nameTamil": "கலைஞர் மகளிர் உரிமைத் தொகை",
+    "category": "Social Welfare",
+    "benefit": "₹1,000/month by DBT to the woman head of an eligible family. A ₹2,500 increase was promised in 2026 but was not officially notified as of Sept 2026.",
+    "status": "ACTIVE",
+    "verify": false,
+    "rules": {
+      "gender": "F",
+      "age": {
+        "$gte": 21
+      },
+      "rationCardHead": {
+        "$in": [
+          "self",
+          "spouse"
+        ]
+      },
+      "income": {
+        "$lt": 250000
+      },
+      "govtEmployeeInFamily": false,
+      "taxPayer": false,
+      "fourWheeler": false
+    },
+    "unmappedCriteria": [
+      "Family land under 5 acres wetland / 10 acres dryland",
+      "Household electricity use under 3,600 units/year",
+      "Only one woman per ration card"
+    ],
+    "also": [
+      "Family land under 5 acres wetland / 10 acres dryland",
+      "Household electricity use under 3,600 units/year",
+      "Only one woman per ration card",
+      "Not eligible: government employees, income tax payers, owners of a personal four-wheeler"
+    ],
+    "requiredDocuments": [
+      "Family (ration) card",
+      "Aadhaar",
+      "Bank passbook (Aadhaar-linked)"
+    ],
+    "docs": [
+      "Family (ration) card",
+      "Aadhaar",
+      "Bank passbook (Aadhaar-linked)"
+    ],
+    "howToApply": [
+      "Check the conditions above, including land and electricity limits.",
+      "Apply online or at a Taluk special camp when registration is open.",
+      "Keep your ration card, Aadhaar and bank details ready."
+    ],
+    "steps": [
+      "Check the conditions above, including land and electricity limits.",
+      "Apply online or at a Taluk special camp when registration is open.",
+      "Keep your ration card, Aadhaar and bank details ready."
+    ],
+    "officialLinks": [
+      [
+        "Official portal",
+        "https://kmut.tn.gov.in"
+      ]
+    ],
+    "links": [
+      [
+        "Official portal",
+        "https://kmut.tn.gov.in"
+      ]
+    ],
+    "origin": "starter",
+    "department": "Social Welfare and Women Empowerment"
+  },
+  {
+    "name": "Pudhumai Penn",
+    "nameTamil": "புதுமைப் பெண் திட்டம்",
+    "category": "Education",
+    "benefit": "₹1,000/month for girls in higher education who studied Classes 6–12 in a government school (government-aided schools were added in July 2024). No income limit.",
+    "status": "ACTIVE",
+    "verify": false,
+    "rules": {
+      "gender": "F",
+      "govschool": true,
+      "highered": true
+    },
+    "unmappedCriteria": [
+      "Recognized UG, diploma, ITI or professional course",
+      "Distance / open-university courses are not eligible"
+    ],
+    "also": [
+      "Recognized UG, diploma, ITI or professional course",
+      "Distance / open-university courses are not eligible"
+    ],
+    "requiredDocuments": [
+      "Aadhaar",
+      "School transfer certificate (for your EMIS number)",
+      "Address proof",
+      "Bank account details"
+    ],
+    "docs": [
+      "Aadhaar",
+      "School transfer certificate (for your EMIS number)",
+      "Address proof",
+      "Bank account details"
+    ],
+    "howToApply": [
+      "You cannot apply directly. Ask your school or college to register you on the scheme portal.",
+      "The institution logs in and enters your details. Upload your documents.",
+      "Submit and keep the acknowledgement. Your college confirms your enrolment for renewal.",
+      "A guide site lists a 31 Oct 2026 deadline. Confirm with your college."
+    ],
+    "steps": [
+      "You cannot apply directly. Ask your school or college to register you on the scheme portal.",
+      "The institution logs in and enters your details. Upload your documents.",
+      "Submit and keep the acknowledgement. Your college confirms your enrolment for renewal.",
+      "A guide site lists a 31 Oct 2026 deadline. Confirm with your college."
+    ],
+    "officialLinks": [
+      [
+        "Social Welfare Department scheme page",
+        "https://tnsocialwelfare.tn.gov.in/en/specilisationswoman-welfare/pudhumai-penn"
+      ]
+    ],
+    "links": [
+      [
+        "Social Welfare Department scheme page",
+        "https://tnsocialwelfare.tn.gov.in/en/specilisationswoman-welfare/pudhumai-penn"
+      ]
+    ],
+    "origin": "starter",
+    "department": "Social Welfare and Women Empowerment"
+  },
+  {
+    "name": "Tamil Pudhalvan",
+    "nameTamil": "தமிழ்ப் புதல்வன் திட்டம்",
+    "category": "Education",
+    "benefit": "₹1,000/month for boys in higher education who studied Classes 6–12 in government or government-aided (Tamil medium) schools. No income limit.",
+    "status": "ACTIVE",
+    "verify": false,
+    "rules": {
+      "gender": "M",
+      "govschool": true,
+      "highered": true
+    },
+    "unmappedCriteria": [
+      "Government-aided schools count if Tamil medium (most sources)",
+      "Private school students are not eligible",
+      "Regular UG, ITI, diploma or polytechnic course"
+    ],
+    "also": [
+      "Government-aided schools count if Tamil medium (most sources)",
+      "Private school students are not eligible",
+      "Regular UG, ITI, diploma or polytechnic course"
+    ],
+    "requiredDocuments": [
+      "Aadhaar",
+      "Bank account details (Aadhaar-linked)",
+      "Mobile number and email",
+      "UMIS / EMIS number",
+      "School transfer certificate (Class 6–12)",
+      "College admission proof",
+      "Photo"
+    ],
+    "docs": [
+      "Aadhaar",
+      "Bank account details (Aadhaar-linked)",
+      "Mobile number and email",
+      "UMIS / EMIS number",
+      "School transfer certificate (Class 6–12)",
+      "College admission proof",
+      "Photo"
+    ],
+    "howToApply": [
+      "Get your EMIS / UMIS ID from your college nodal officer.",
+      "Log in to the UMIS portal with that ID and fill in the application.",
+      "Upload your documents and submit."
+    ],
+    "steps": [
+      "Get your EMIS / UMIS ID from your college nodal officer.",
+      "Log in to the UMIS portal with that ID and fill in the application.",
+      "Upload your documents and submit."
+    ],
+    "officialLinks": [
+      [
+        "UMIS portal",
+        "https://umis.tn.gov.in"
+      ]
+    ],
+    "links": [
+      [
+        "UMIS portal",
+        "https://umis.tn.gov.in"
+      ]
+    ],
+    "origin": "starter",
+    "department": "Higher Education"
+  },
+  {
+    "name": "Old Age Pension (IGNOAPS / TN)",
+    "nameTamil": "முதியோர் ஓய்வூதியத் திட்டம்",
+    "category": "Pension",
+    "benefit": "₹1,200/month for destitute elderly (official Revenue Administration page).",
+    "status": "ACTIVE",
+    "verify": false,
+    "rules": {
+      "age": {
+        "$gte": 60
+      },
+      "destitute": true
+    },
+    "unmappedCriteria": [
+      "Belonging to a below-poverty-line family"
+    ],
+    "also": [
+      "Belonging to a below-poverty-line family"
+    ],
+    "requiredDocuments": [
+      "Aadhaar",
+      "Age proof",
+      "Income certificate",
+      "Destitute affidavit",
+      "Bank passbook"
+    ],
+    "docs": [
+      "Aadhaar",
+      "Age proof",
+      "Income certificate",
+      "Destitute affidavit",
+      "Bank passbook"
+    ],
+    "howToApply": [
+      "Get the free application form from your e-Sevai centre or Taluk office, or apply online through the e-Sevai portal.",
+      "Attach your documents (see the list above) and submit.",
+      "Officials verify the application (field check, then approval). Keep the acknowledgement and never pay an agent."
+    ],
+    "steps": [
+      "Get the free application form from your e-Sevai centre or Taluk office, or apply online through the e-Sevai portal.",
+      "Attach your documents (see the list above) and submit.",
+      "Officials verify the application (field check, then approval). Keep the acknowledgement and never pay an agent."
+    ],
+    "officialLinks": [
+      [
+        "Official eligibility page (Revenue Administration)",
+        "https://cra.tn.gov.in/eleg_schemes.php"
+      ],
+      [
+        "e-Sevai portal (application channel)",
+        "https://www.tnesevai.tn.gov.in"
+      ]
+    ],
+    "links": [
+      [
+        "Official eligibility page (Revenue Administration)",
+        "https://cra.tn.gov.in/eleg_schemes.php"
+      ],
+      [
+        "e-Sevai portal (application channel)",
+        "https://www.tnesevai.tn.gov.in"
+      ]
+    ],
+    "origin": "starter",
+    "department": "Revenue and Disaster Management"
+  },
+  {
+    "name": "Destitute Widow Pension",
+    "nameTamil": "ஆதரவற்ற விதவை ஓய்வூதியம்",
+    "category": "Pension",
+    "benefit": "₹1,200/month for destitute widows.",
+    "status": "ACTIVE",
+    "verify": false,
+    "rules": {
+      "gender": "F",
+      "marital": "widowed",
+      "age": {
+        "$gte": 18
+      },
+      "destitute": true,
+      "fixedAssetsBand": "under ₹1 lakh"
+    },
+    "unmappedCriteria": [
+      "Fixed assets not above ₹1,00,000"
+    ],
+    "also": [
+      "Fixed assets not above ₹1,00,000"
+    ],
+    "requiredDocuments": [
+      "Destitute Widow Certificate (Revenue Dept)",
+      "Husband's death certificate",
+      "Income certificate",
+      "Aadhaar-linked bank account"
+    ],
+    "docs": [
+      "Destitute Widow Certificate (Revenue Dept)",
+      "Husband's death certificate",
+      "Income certificate",
+      "Aadhaar-linked bank account"
+    ],
+    "howToApply": [
+      "Get the free application form from your e-Sevai centre or Taluk office, or apply online through the e-Sevai portal.",
+      "Attach your documents (see the list above) and submit.",
+      "Officials verify the application (field check, then approval). Keep the acknowledgement and never pay an agent."
+    ],
+    "steps": [
+      "Get the free application form from your e-Sevai centre or Taluk office, or apply online through the e-Sevai portal.",
+      "Attach your documents (see the list above) and submit.",
+      "Officials verify the application (field check, then approval). Keep the acknowledgement and never pay an agent."
+    ],
+    "officialLinks": [
+      [
+        "Official eligibility page (Revenue Administration)",
+        "https://cra.tn.gov.in/eleg_schemes.php"
+      ],
+      [
+        "e-Sevai portal (application channel)",
+        "https://www.tnesevai.tn.gov.in"
+      ]
+    ],
+    "links": [
+      [
+        "Official eligibility page (Revenue Administration)",
+        "https://cra.tn.gov.in/eleg_schemes.php"
+      ],
+      [
+        "e-Sevai portal (application channel)",
+        "https://www.tnesevai.tn.gov.in"
+      ]
+    ],
+    "origin": "starter",
+    "department": "Revenue and Disaster Management"
+  },
+  {
+    "name": "Destitute / Deserted Wives Pension",
+    "nameTamil": "ஆதரவற்ற கணவரால் கைவிடப்பட்டோர் ஓய்வூதியம்",
+    "category": "Pension",
+    "benefit": "₹1,200/month for destitute deserted or divorced women.",
+    "status": "ACTIVE",
+    "verify": false,
+    "rules": {
+      "gender": "F",
+      "marital": "deserted",
+      "age": {
+        "$gte": 30
+      },
+      "destitute": true
+    },
+    "unmappedCriteria": [
+      "Legally divorced or deserted for at least 5 years, or holding a court legal-separation certificate"
+    ],
+    "also": [
+      "Legally divorced or deserted for at least 5 years, or holding a court legal-separation certificate"
+    ],
+    "requiredDocuments": [
+      "Deserted Wife Certificate / Legal separation document",
+      "Income certificate",
+      "Aadhaar",
+      "Bank passbook"
+    ],
+    "docs": [
+      "Deserted Wife Certificate / Legal separation document",
+      "Income certificate",
+      "Aadhaar",
+      "Bank passbook"
+    ],
+    "howToApply": [
+      "Get the free application form from your e-Sevai centre or Taluk office, or apply online through the e-Sevai portal.",
+      "Attach your documents (see the list above) and submit.",
+      "Officials verify the application (field check, then approval). Keep the acknowledgement and never pay an agent."
+    ],
+    "steps": [
+      "Get the free application form from your e-Sevai centre or Taluk office, or apply online through the e-Sevai portal.",
+      "Attach your documents (see the list above) and submit.",
+      "Officials verify the application (field check, then approval). Keep the acknowledgement and never pay an agent."
+    ],
+    "officialLinks": [
+      [
+        "Official eligibility page (Revenue Administration)",
+        "https://cra.tn.gov.in/eleg_schemes.php"
+      ],
+      [
+        "e-Sevai portal (application channel)",
+        "https://www.tnesevai.tn.gov.in"
+      ]
+    ],
+    "links": [
+      [
+        "Official eligibility page (Revenue Administration)",
+        "https://cra.tn.gov.in/eleg_schemes.php"
+      ],
+      [
+        "e-Sevai portal (application channel)",
+        "https://www.tnesevai.tn.gov.in"
+      ]
+    ],
+    "origin": "starter",
+    "department": "Revenue and Disaster Management"
+  },
+  {
+    "name": "Unmarried Poor Women Pension",
+    "nameTamil": "50 வயதிற்கு மேற்பட்ட ஆதரவற்ற திருமண ஆகாத பெண்கள் ஓய்வூதியம்",
+    "category": "Pension",
+    "benefit": "₹1,200/month for destitute unmarried women aged 50+ (official Revenue Administration page).",
+    "status": "ACTIVE",
+    "verify": false,
+    "rules": {
+      "gender": "F",
+      "marital": "single",
+      "age": {
+        "$gte": 50
+      },
+      "destitute": true
+    },
+    "unmappedCriteria": [
+      "No income from other sources and limited assets"
+    ],
+    "also": [
+      "No income from other sources and limited assets"
+    ],
+    "requiredDocuments": [
+      "Photo",
+      "Aadhaar and Aadhaar consent form",
+      "Ration card or address proof",
+      "Identity proof",
+      "Self-declaration",
+      "Bank passbook",
+      "Unmarried certificate"
+    ],
+    "docs": [
+      "Photo",
+      "Aadhaar and Aadhaar consent form",
+      "Ration card or address proof",
+      "Identity proof",
+      "Self-declaration",
+      "Bank passbook",
+      "Unmarried certificate"
+    ],
+    "howToApply": [
+      "Get the free application form from your e-Sevai centre or Taluk office, or apply online through the e-Sevai portal.",
+      "Attach your documents (see the list above) and submit.",
+      "Officials verify the application (field check, then approval). Keep the acknowledgement and never pay an agent."
+    ],
+    "steps": [
+      "Get the free application form from your e-Sevai centre or Taluk office, or apply online through the e-Sevai portal.",
+      "Attach your documents (see the list above) and submit.",
+      "Officials verify the application (field check, then approval). Keep the acknowledgement and never pay an agent."
+    ],
+    "officialLinks": [
+      [
+        "Official eligibility page (Revenue Administration)",
+        "https://cra.tn.gov.in/eleg_schemes.php"
+      ],
+      [
+        "e-Sevai portal (application channel)",
+        "https://www.tnesevai.tn.gov.in"
+      ]
+    ],
+    "links": [
+      [
+        "Official eligibility page (Revenue Administration)",
+        "https://cra.tn.gov.in/eleg_schemes.php"
+      ],
+      [
+        "e-Sevai portal (application channel)",
+        "https://www.tnesevai.tn.gov.in"
+      ]
+    ],
+    "origin": "starter",
+    "department": "Revenue and Disaster Management"
+  },
+  {
+    "name": "Differently Abled Pension (DAPS)",
+    "nameTamil": "மாற்றுத்திறனாளிகள் ஓய்வூதியம்",
+    "category": "Pension",
+    "benefit": "₹1,500/month for persons with 40%+ disability.",
+    "status": "ACTIVE",
+    "verify": false,
+    "rules": {
+      "age": {
+        "$gte": 18
+      },
+      "disability": {
+        "$gte": 40
+      }
+    },
+    "unmappedCriteria": [
+      "Unemployed, or if private / self-employed, annual income not above ₹3 lakh",
+      "Permanent government employees are not eligible"
+    ],
+    "also": [
+      "Unemployed, or if private / self-employed, annual income not above ₹3 lakh",
+      "Permanent government employees are not eligible"
+    ],
+    "requiredDocuments": [
+      "Disability Certificate (National Disability Identity Card / UDID)",
+      "Aadhaar",
+      "Income certificate",
+      "Bank passbook"
+    ],
+    "docs": [
+      "Disability Certificate (National Disability Identity Card / UDID)",
+      "Aadhaar",
+      "Income certificate",
+      "Bank passbook"
+    ],
+    "howToApply": [
+      "Get the free application form from your e-Sevai centre or Taluk office, or apply online through the e-Sevai portal.",
+      "Attach your documents (see the list above) and submit.",
+      "Officials verify the application (field check, then approval). Keep the acknowledgement and never pay an agent."
+    ],
+    "steps": [
+      "Get the free application form from your e-Sevai centre or Taluk office, or apply online through the e-Sevai portal.",
+      "Attach your documents (see the list above) and submit.",
+      "Officials verify the application (field check, then approval). Keep the acknowledgement and never pay an agent."
+    ],
+    "officialLinks": [
+      [
+        "Official eligibility page (Revenue Administration)",
+        "https://cra.tn.gov.in/eleg_schemes.php"
+      ],
+      [
+        "e-Sevai portal (application channel)",
+        "https://www.tnesevai.tn.gov.in"
+      ]
+    ],
+    "links": [
+      [
+        "Official eligibility page (Revenue Administration)",
+        "https://cra.tn.gov.in/eleg_schemes.php"
+      ],
+      [
+        "e-Sevai portal (application channel)",
+        "https://www.tnesevai.tn.gov.in"
+      ]
+    ],
+    "origin": "starter",
+    "department": "Welfare of Differently Abled Persons"
+  },
+  {
+    "name": "CM Comprehensive Health Insurance (CMCHIS)",
+    "nameTamil": "முதலமைச்சரின் விரிவான மருத்துவக் காப்பீட்டுத் திட்டம்",
+    "category": "Health",
+    "benefit": "Cashless treatment cover of ₹5 lakh per family per year. An increase to ₹25 lakh was announced on 19 Aug 2026; the start date is not announced.",
+    "status": "ACTIVE",
+    "verify": false,
+    "rules": {
+      "income": {
+        "$lt": 120000
+      }
+    },
+    "unmappedCriteria": [
+      "Your name must be on the family card",
+      "Some groups (for example differently abled persons) may be exempt from the income limit. Confirm."
+    ],
+    "also": [
+      "Your name must be on the family card",
+      "Some groups (for example differently abled persons) may be exempt from the income limit. Confirm."
+    ],
+    "requiredDocuments": [
+      "Income certificate (VAO / revenue authority)",
+      "Family card",
+      "Aadhaar",
+      "Self-declaration by head of family"
+    ],
+    "docs": [
+      "Income certificate (VAO / revenue authority)",
+      "Family card",
+      "Aadhaar",
+      "Self-declaration by head of family"
+    ],
+    "howToApply": [
+      "Get an income certificate from the VAO or revenue authority.",
+      "Visit the CMCHIS registration centre at your district Collectorate with your documents.",
+      "Complete Aadhaar and biometric verification.",
+      "Receive your smart card, then get cashless treatment at empanelled hospitals."
+    ],
+    "steps": [
+      "Get an income certificate from the VAO or revenue authority.",
+      "Visit the CMCHIS registration centre at your district Collectorate with your documents.",
+      "Complete Aadhaar and biometric verification.",
+      "Receive your smart card, then get cashless treatment at empanelled hospitals."
+    ],
+    "officialLinks": [
+      [
+        "Official CMCHIS portal",
+        "https://www.cmchistn.com/"
+      ]
+    ],
+    "links": [
+      [
+        "Official CMCHIS portal",
+        "https://www.cmchistn.com/"
+      ]
+    ],
+    "origin": "starter",
+    "department": "Health and Family Welfare"
+  },
+  {
+    "name": "Vidiyal Payanam (Free Bus Travel)",
+    "nameTamil": "விடியல் பயணம் திட்டம் (மகளிர் இலவச பேருந்து பயணம்)",
+    "category": "Social Welfare",
+    "benefit": "Free travel for women in eligible government town buses.",
+    "status": "ACTIVE",
+    "verify": false,
+    "rules": {
+      "gender": "F"
+    },
+    "unmappedCriteria": [
+      "Applies to zero-ticket pink town buses operated by state transport undertakings"
+    ],
+    "also": [
+      "Applies to zero-ticket pink town buses operated by state transport undertakings"
+    ],
+    "requiredDocuments": [
+      "No application needed; show valid identity proof if requested by conductor"
+    ],
+    "docs": [
+      "No application needed; show valid identity proof if requested by conductor"
+    ],
+    "howToApply": [
+      "Board eligible town (pink) buses operated by Tamil Nadu STUs.",
+      "Collect zero-fare ticket from conductor."
+    ],
+    "steps": [
+      "Board eligible town (pink) buses operated by Tamil Nadu STUs.",
+      "Collect zero-fare ticket from conductor."
+    ],
+    "officialLinks": [
+      [
+        "TN State Transport Department",
+        "https://tnstc.in"
+      ]
+    ],
+    "links": [
+      [
+        "TN State Transport Department",
+        "https://tnstc.in"
+      ]
+    ],
+    "origin": "starter",
+    "department": "Social Welfare and Women Empowerment"
+  },
+  {
+    "name": "Naan Mudhalvan",
+    "nameTamil": "நான் முதல்வன் திட்டம்",
+    "category": "Education",
+    "benefit": "Free skilling, certification and employability programme for students and youth.",
+    "status": "ACTIVE",
+    "verify": true,
+    "rules": {},
+    "unmappedCriteria": [
+      "Sources describe it for Class 9–12 and college students; one also mentions job seekers aged 18–35",
+      "Registration is free. One guide lists nnm.tn.gov.in instead; use only .tn.gov.in sites and never pay an agent"
+    ],
+    "also": [
+      "Sources describe it for Class 9–12 and college students; one also mentions job seekers aged 18–35",
+      "Registration is free. One guide lists nnm.tn.gov.in instead; use only .tn.gov.in sites and never pay an agent"
+    ],
+    "requiredDocuments": [
+      "Student ID / Educational certificates",
+      "Aadhaar",
+      "Mobile number for OTP verification"
+    ],
+    "docs": [
+      "Student ID / Educational certificates",
+      "Aadhaar",
+      "Mobile number for OTP verification"
+    ],
+    "howToApply": [
+      "Register through your school or college coordinator, or log in on the portal with your mobile number or email and OTP.",
+      "Pick courses, internships or competitions you want."
+    ],
+    "steps": [
+      "Register through your school or college coordinator, or log in on the portal with your mobile number or email and OTP.",
+      "Pick courses, internships or competitions you want."
+    ],
+    "officialLinks": [
+      [
+        "Main portal",
+        "https://naanmudhalvan.tn.gov.in"
+      ],
+      [
+        "College students",
+        "https://portal.naanmudhalvan.tn.gov.in"
+      ]
+    ],
+    "links": [
+      [
+        "Main portal",
+        "https://naanmudhalvan.tn.gov.in"
+      ],
+      [
+        "College students",
+        "https://portal.naanmudhalvan.tn.gov.in"
+      ]
+    ],
+    "origin": "starter",
+    "department": "Labour Welfare and Skill Development"
+  },
+  {
+    "name": "State Government Employees Pension Scheme",
+    "nameTamil": "மாநில அரசு ஊழியர்கள் ஓய்வூதியத் திட்டம்",
+    "category": "Pension",
+    "benefit": "Pension amount for retired state government employees based on their last drawn salary and years of service.",
+    "status": "ACTIVE",
+    "verify": false,
+    "rules": {
+      "age": {
+        "$gte": 58
+      },
+      "retired": true
+    },
+    "aliases": [
+      "TAPS",
+      "Tamil Nadu Government Pensioners Scheme",
+      "Old Pension Scheme",
+      "CPS",
+      "Tamil Nadu Pensioners Scheme",
+      "Government employee pension"
+    ],
+    "reviewStatus": "pending",
+    "inReviewQueue": true,
+    "unmappedCriteria": [
+      "Minimum 10 years of qualifying service",
+      "Must be a retired state government employee"
+    ],
+    "also": [
+      "Minimum 10 years of qualifying service"
+    ],
+    "requiredDocuments": [
+      "Pension Payment Order (PPO)",
+      "Aadhaar",
+      "Bank passbook"
+    ],
+    "docs": [
+      "Pension Payment Order (PPO)",
+      "Aadhaar",
+      "Bank passbook"
+    ],
+    "howToApply": [
+      "Processed automatically upon retirement through the respective department.",
+      "Pensioners must submit a Life Certificate (Jeevan Pramaan) annually."
+    ],
+    "steps": [
+      "Processed automatically upon retirement through the respective department.",
+      "Pensioners must submit a Life Certificate (Jeevan Pramaan) annually."
+    ],
+    "officialLinks": [
+      [
+        "TN Pensioners Portal",
+        "https://tnpensioner.tn.gov.in"
+      ],
+      [
+        "Treasuries and Accounts",
+        "https://www.karuvoolam.tn.gov.in/web/tnta/pension"
+      ]
+    ],
+    "links": [
+      [
+        "TN Pensioners Portal",
+        "https://tnpensioner.tn.gov.in"
+      ],
+      [
+        "Treasuries and Accounts",
+        "https://www.karuvoolam.tn.gov.in/web/tnta/pension"
+      ]
+    ],
+    "origin": "starter",
+    "department": "Finance (Treasuries and Accounts)"
+  },
+  {
+    "name": "Unemployment Assistance Scheme",
+    "nameTamil": "வேலையில்லா பட்டதாரி உதவித் தொகை",
+    "category": "Employment",
+    "benefit": "Financial assistance for unemployed youth registered with the Employment Exchange for over 5 years.",
+    "status": "ACTIVE",
+    "verify": false,
+    "rules": {
+      "age": {
+        "$gte": 18,
+        "$lte": 40
+      },
+      "unemployed": true
+    },
+    "aliases": [
+      "வேலையில்லா உதவித்தொகை",
+      "Youth Unemployment Allowance",
+      "unemployment allowance"
+    ],
+    "unmappedCriteria": [
+      "Registered in Employment Exchange for at least 5 years",
+      "Family income should not exceed ₹72,000 per annum"
+    ],
+    "also": [
+      "Registered in Employment Exchange for at least 5 years",
+      "Family income should not exceed ₹72,000 per annum"
+    ],
+    "requiredDocuments": [
+      "Employment Exchange Registration Card",
+      "Income Certificate",
+      "Aadhaar",
+      "Bank passbook"
+    ],
+    "docs": [
+      "Employment Exchange Registration Card",
+      "Income Certificate",
+      "Aadhaar",
+      "Bank passbook"
+    ],
+    "howToApply": [
+      "Apply at your district Employment Exchange office.",
+      "Submit the filled application with necessary documents."
+    ],
+    "steps": [
+      "Apply at your district Employment Exchange office.",
+      "Submit the filled application with necessary documents."
+    ],
+    "officialLinks": [
+      [
+        "TN Employment Exchange",
+        "https://tnvelaivaaippu.gov.in"
+      ]
+    ],
+    "links": [
+      [
+        "TN Employment Exchange",
+        "https://tnvelaivaaippu.gov.in"
+      ]
+    ],
+    "origin": "starter",
+    "department": "Labour Welfare and Skill Development"
+  },
+  {
+    "name": "Thalapathy Vijay Education Award",
+    "nameTamil": "தளபதி விஜய் கல்வி விருது",
+    "category": "Education",
+    "benefit": "Awards and financial assistance distributed to top-scoring students in 10th and 12th standard public exams across all districts of Tamil Nadu.",
+    "status": "ACTIVE",
+    "verify": false,
+    "reviewStatus": "rejected",
+    "rejectionReason": "no official government page (non-official initiative)",
+    "rules": {
+      "student": true
+    },
+    "unmappedCriteria": [
+      "Must be among the top 3 rank holders in 10th or 12th standard public exams in their respective district or constituency."
+    ],
+    "also": [
+      "Must be among the top 3 rank holders in 10th or 12th standard public exams in their respective district or constituency."
+    ],
+    "requiredDocuments": [
+      "10th/12th Marksheet",
+      "School Bonafide Certificate",
+      "Aadhaar"
+    ],
+    "docs": [
+      "10th/12th Marksheet",
+      "School Bonafide Certificate",
+      "Aadhaar"
+    ],
+    "howToApply": [
+      "Selected based on public exam results.",
+      "Initiative organized by Thalapathy Vijay Makkal Iyakkam / Tamizhaga Vettri Kazhagam."
+    ],
+    "steps": [
+      "Selected based on public exam results.",
+      "Initiative organized by Thalapathy Vijay Makkal Iyakkam / Tamizhaga Vettri Kazhagam."
+    ],
+    "officialLinks": [],
+    "links": [],
+    "origin": "starter",
+    "department": "Non-Governmental"
+  },
+  {
+    "name": "Post-Matric Scholarship for SC/ST",
+    "nameTamil": "ஆதி திராவிடர் மற்றும் பழங்குடியினர் போஸ்ட்-மெட்ரிக் கல்வி உதவித்தொகை",
+    "category": "Scholarships (SC/ST/BC/MBC/Minority)",
+    "department": "Adi Dravidar and Tribal Welfare",
+    "benefit": "100% compulsory non-refundable fees assistance and monthly maintenance allowance for post-matriculation courses.",
+    "status": "ACTIVE",
+    "applicationStatus": "open",
+    "applicationDeadline": "31 Oct 2026",
+    "confirmationLevel": "confirmed by 2 or more official sources",
+    "confirmingSources": [
+      "https://www.tnadw.tn.gov.in/",
+      "https://scholarships.gov.in"
+    ],
+    "rules": {
+      "communityCategory": "SC",
+      "courseLevel": "UG",
+      "annualIncome": {
+        "$lte": 250000
+      }
+    },
+    "eligibilityRules": {
+      "communityCategory": "SC",
+      "courseLevel": "UG",
+      "annualIncome": {
+        "$lte": 250000
+      }
+    },
+    "unmappedCriteria": [
+      "Recognized institution in Tamil Nadu or premier national institutes"
+    ],
+    "requiredDocuments": [
+      "Community Certificate",
+      "Income Certificate",
+      "Bonafide Certificate",
+      "Aadhaar",
+      "Bank passbook"
+    ],
+    "docs": [
+      "Community Certificate",
+      "Income Certificate",
+      "Bonafide Certificate",
+      "Aadhaar",
+      "Bank passbook"
+    ],
+    "officialLinks": [
+      [
+        "Adi Dravidar Welfare Portal",
+        "https://www.tnadw.tn.gov.in/"
+      ]
+    ],
+    "links": [
+      [
+        "Adi Dravidar Welfare Portal",
+        "https://www.tnadw.tn.gov.in/"
+      ]
+    ],
+    "origin": "starter"
+  },
+  {
+    "name": "Unorganised Workers Welfare Board Registration",
+    "nameTamil": "தமிழ்நாடு உடலுழைப்புத் தொழிலாளர்கள் நல வாரியப் பதிவு",
+    "category": "Workers' welfare boards",
+    "department": "Labour Welfare and Skill Development",
+    "board": "Tamil Nadu Unorganised Workers Welfare Board",
+    "benefit": "Access to accident relief (up to ₹5,00,000), natural death assistance (₹20,000), marriage assistance (₹5,000), education assistance and pension (₹1,000/month after age 60).",
+    "status": "ACTIVE",
+    "applicationStatus": "open",
+    "confirmationLevel": "confirmed by 1 official source",
+    "confirmingSources": [
+      "https://tnuwwb.tn.gov.in/"
+    ],
+    "rules": {
+      "workerType": "manual_worker",
+      "age": {
+        "$gte": 18,
+        "$lte": 60
+      }
+    },
+    "eligibilityRules": {
+      "workerType": "manual_worker",
+      "age": {
+        "$gte": 18,
+        "$lte": 60
+      }
+    },
+    "unmappedCriteria": [
+      "Engaged in 60 notified manual or unorganised trades in Tamil Nadu",
+      "Not a member of EPFO/ESIC"
+    ],
+    "requiredDocuments": [
+      "Aadhaar",
+      "Ration Card",
+      "Bank Passbook",
+      "Employment Certificate / Self-Declaration",
+      "Passport Photo"
+    ],
+    "docs": [
+      "Aadhaar",
+      "Ration Card",
+      "Bank Passbook",
+      "Employment Certificate / Self-Declaration",
+      "Passport Photo"
+    ],
+    "officialLinks": [
+      [
+        "TNUWWB Official Portal",
+        "https://tnuwwb.tn.gov.in/"
+      ]
+    ],
+    "links": [
+      [
+        "TNUWWB Official Portal",
+        "https://tnuwwb.tn.gov.in/"
+      ]
+    ],
+    "origin": "starter"
+  }
+]

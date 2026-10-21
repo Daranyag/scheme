@@ -10,6 +10,8 @@ class Discovery {
   final String lastChecked;
   final bool seen;
   final bool notRelevant;
+  final String extractedBy;
+  final int quotedFactsCount;
 
   Discovery({
     required this.id,
@@ -23,6 +25,8 @@ class Discovery {
     required this.lastChecked,
     this.seen = false,
     this.notRelevant = false,
+    this.extractedBy = 'rules',
+    this.quotedFactsCount = 0,
   });
 
   factory Discovery.fromJson(Map<String, dynamic> json) {
@@ -40,6 +44,8 @@ class Discovery {
           : 'Recently',
       seen: json['seen'] ?? false,
       notRelevant: json['notRelevant'] ?? false,
+      extractedBy: json['extractedBy'] ?? 'rules',
+      quotedFactsCount: json['quotedFactsCount'] ?? 0,
     );
   }
 }

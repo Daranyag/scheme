@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:math';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/discovery.dart';
@@ -30,7 +31,8 @@ class ApiService {
       return 'http://localhost:3000';
     }
     if (defaultTargetPlatform == TargetPlatform.android) {
-      return 'http://10.0.2.2:3000';
+      // Default to host machine LAN IP for physical device testing; 10.0.2.2 is only for emulators
+      return 'http://10.144.174.65:3000';
     }
     return 'http://localhost:3000';
   }
@@ -208,181 +210,289 @@ class ApiService {
     }
   }
 
-  static Future<List<Scheme>> fetchSchemes() async {
-    try {
-      final response = await http
-          .get(Uri.parse('$baseUrl/api/schemes'))
-          .timeout(const Duration(seconds: 4));
+  static const String _keyCachedSchemesJson = 'cached_schemes_json';
+  static const String _keyCachedSchemesTime = 'cached_schemes_timestamp';
+  static const String _keyCachedSchemesEtag = 'cached_schemes_etag';
 
-      if (response.statusCode == 200) {
+  /// Loads bundled assets (starter-schemes.json + starter-schemes-additions.json)
+  static Future<List<Scheme>> loadStarterAssets() async {
+    final List<Scheme> result = [];
+    try {
+      final p1 = await rootBundle.loadString('assets/starter-schemes.json');
+      final List<dynamic> d1 = jsonDecode(p1);
+      for (var j in d1) {
+        if (j is Map<String, dynamic>) {
+          if (j['reviewStatus'] == 'rejected') continue;
+          final s = Scheme.fromJson(j);
+          if (s.name.isNotEmpty && !s.name.startsWith('Government Scheme') && s.reviewStatus != 'rejected') {
+            result.add(s);
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('[ApiService] Error loading starter-schemes.json asset: $e');
+    }
+
+    try {
+      final p2 = await rootBundle.loadString('assets/starter-schemes-additions.json');
+      final List<dynamic> d2 = jsonDecode(p2);
+      for (var j in d2) {
+        if (j is Map<String, dynamic>) {
+          if (j['reviewStatus'] == 'rejected') continue;
+          final s = Scheme.fromJson(j);
+          if (s.name.isNotEmpty && !s.name.startsWith('Government Scheme') && s.reviewStatus != 'rejected') {
+            result.add(s);
+          }
+        }
+      }
+    } catch (_) {}
+
+    return result;
+  }
+
+  /// Immediately returns cached schemes from SharedPreferences, or bundled assets if no cache.
+  static Future<SchemeResult> getLocalOrStarterSchemes() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final cachedJson = prefs.getString(_keyCachedSchemesJson);
+      final cachedTimeStr = prefs.getString(_keyCachedSchemesTime);
+
+      if (cachedJson != null && cachedJson.trim().isNotEmpty) {
+        try {
+          final List<dynamic> raw = jsonDecode(cachedJson);
+          final List<Scheme> list = [];
+          for (var item in raw) {
+            if (item is Map<String, dynamic>) {
+              if (item['reviewStatus'] == 'rejected') continue;
+              final s = Scheme.fromJson(item);
+              if (s.name.isNotEmpty && !s.name.startsWith('Government Scheme') && s.reviewStatus != 'rejected') {
+                list.add(s);
+              }
+            }
+          }
+          if (list.isNotEmpty) {
+            DateTime? dt;
+            if (cachedTimeStr != null) {
+              dt = DateTime.tryParse(cachedTimeStr);
+            }
+            return SchemeResult(
+              schemes: list,
+              source: SchemeSource.deviceCache,
+              lastUpdated: dt,
+            );
+          }
+        } catch (e) {
+          debugPrint('[ApiService] Error parsing cached schemes: $e');
+        }
+      }
+    } catch (e) {
+      debugPrint('[ApiService] SharedPreferences error: $e');
+    }
+
+    // First launch without server: show bundled starter data
+    final starterList = await loadStarterAssets();
+    if (starterList.isNotEmpty) {
+      return SchemeResult(
+        schemes: starterList,
+        source: SchemeSource.starterAsset,
+        lastUpdated: null,
+      );
+    }
+
+    return SchemeResult(
+      schemes: [],
+      source: SchemeSource.none,
+      lastUpdated: null,
+    );
+  }
+
+  /// Fetches schemes from the server with 20s timeout on first load (10s on refresh),
+  /// 1 automatic retry, ETag caching and gzip support.
+  static Future<SchemeResult> fetchSchemesFromServer({bool isRefresh = false}) async {
+    final timeout = isRefresh ? const Duration(seconds: 10) : const Duration(seconds: 20);
+    SharedPreferences? prefs;
+    String? etag;
+    try {
+      prefs = await SharedPreferences.getInstance();
+      etag = prefs.getString(_keyCachedSchemesEtag);
+    } catch (_) {}
+
+    http.Response? response;
+    String? lastError;
+
+    // Up to 2 attempts (one automatic retry on failure)
+    for (int attempt = 1; attempt <= 2; attempt++) {
+      try {
+        final headers = <String, String>{
+          'Accept-Encoding': 'gzip',
+        };
+        if (etag != null && etag.isNotEmpty) {
+          headers['If-None-Match'] = etag;
+        }
+
+        response = await http.get(
+          Uri.parse('$baseUrl/api/schemes'),
+          headers: headers,
+        ).timeout(timeout);
+        break; // Request completed
+      } catch (e) {
+        lastError = e.toString();
+        debugPrint('[ApiService] Attempt $attempt failed: $e');
+        if (attempt == 1) {
+          await Future.delayed(const Duration(milliseconds: 300));
+        }
+      }
+    }
+
+    if (response == null) {
+      return SchemeResult(
+        schemes: [],
+        source: SchemeSource.none,
+        isError: true,
+        errorMessage: lastError ?? 'Connection failed',
+      );
+    }
+
+    // 304 Not Modified: Cache is up to date
+    if (response.statusCode == 304) {
+      final local = await getLocalOrStarterSchemes();
+      final now = DateTime.now();
+      if (prefs != null) {
+        await prefs.setString(_keyCachedSchemesTime, now.toIso8601String());
+      }
+      return SchemeResult(
+        schemes: local.schemes,
+        source: SchemeSource.server,
+        lastUpdated: now,
+      );
+    }
+
+    if (response.statusCode == 200) {
+      try {
         final List<dynamic> data = jsonDecode(response.body);
         final List<Scheme> schemes = [];
         for (var json in data) {
+          if (json is Map<String, dynamic> && json['reviewStatus'] == 'rejected') continue;
           final scheme = Scheme.fromJson(json);
-          if (scheme.name.isEmpty || scheme.name.startsWith('Government Scheme')) {
-            debugPrint('[WARNING] Server record missing real name (id: ${json['_id']}). Skipping record.');
+          if (scheme.name.isEmpty || scheme.name.startsWith('Government Scheme') || scheme.reviewStatus == 'rejected') {
             continue;
           }
           schemes.add(scheme);
         }
-        return schemes;
+
+        final now = DateTime.now();
+        if (prefs != null) {
+          await prefs.setString(_keyCachedSchemesJson, response.body);
+          await prefs.setString(_keyCachedSchemesTime, now.toIso8601String());
+          final newEtag = response.headers['etag'];
+          if (newEtag != null) {
+            await prefs.setString(_keyCachedSchemesEtag, newEtag);
+          }
+        }
+
+        return SchemeResult(
+          schemes: schemes,
+          source: SchemeSource.server,
+          lastUpdated: now,
+        );
+      } catch (e) {
+        return SchemeResult(
+          schemes: [],
+          source: SchemeSource.none,
+          isError: true,
+          errorMessage: 'Failed to parse schemes from server: $e',
+        );
       }
-    } catch (e) {
-      debugPrint('API fetch error, falling back to local schemes: $e');
     }
 
-    // Offline / fallback starter schemes
-    return getFallbackSchemes();
+    return SchemeResult(
+      schemes: [],
+      source: SchemeSource.none,
+      isError: true,
+      errorMessage: 'Server returned HTTP ${response.statusCode}',
+    );
   }
 
-  static List<Scheme> getFallbackSchemes() {
-    final List<Map<String, dynamic>> raw = [
-      {
-        "name": "Kalaignar Magalir Urimai Thogai",
-        "benefit": "₹1,000/month by DBT to the woman head of an eligible family.",
-        "rules": { "gender": "F", "age": { "\$gte": 21 }, "famhead": true, "income": { "\$lt": 250000 } },
-        "also": [
-          "Family land under 5 acres wetland / 10 acres dryland",
-          "Household electricity use under 3,600 units/year",
-          "Only one woman per ration card",
-          "Not eligible: government employees, income tax payers, owners of personal four-wheeler"
-        ],
-        "docs": ["Family (ration) card", "Aadhaar", "Bank passbook (Aadhaar-linked)"],
-        "steps": [
-          "Check the conditions above, including land and electricity limits.",
-          "Apply online or at a Taluk special camp when registration is open.",
-          "Keep your ration card, Aadhaar and bank details ready."
-        ],
-        "links": [["Official portal", "https://kmut.tn.gov.in"]]
-      },
-      {
-        "name": "Pudhumai Penn",
-        "benefit": "₹1,000/month for girls in higher education who studied Classes 6–12 in a government school.",
-        "rules": { "gender": "F", "govschool": true, "highered": true },
-        "also": [
-          "Recognized UG, diploma, ITI or professional course",
-          "Distance / open-university courses are not eligible"
-        ],
-        "docs": ["Aadhaar", "School transfer certificate (for your EMIS number)", "Address proof", "Bank account details"],
-        "steps": [
-          "Ask your school or college to register you on the scheme portal.",
-          "The institution logs in and enters your details. Upload your documents.",
-          "Submit and keep the acknowledgement."
-        ],
-        "links": [["Social Welfare Department", "https://tnsocialwelfare.tn.gov.in/en/specilisationswoman-welfare/pudhumai-penn"]]
-      },
-      {
-        "name": "Tamil Pudhalvan",
-        "benefit": "₹1,000/month for boys in higher education who studied Classes 6–12 in government schools.",
-        "rules": { "gender": "M", "govschool": true, "highered": true },
-        "also": [
-          "Government-aided schools count if Tamil medium",
-          "Private school students are not eligible"
-        ],
-        "docs": ["Aadhaar", "Bank account details", "School transfer certificate (Class 6–12)", "College admission proof"],
-        "steps": [
-          "Get your EMIS / UMIS ID from your college nodal officer.",
-          "Log in to the UMIS portal with that ID and fill in the application.",
-          "Upload your documents and submit."
-        ],
-        "links": [["UMIS portal", "https://umis.tn.gov.in"]]
-      },
-      {
-        "name": "Old Age Pension (IGNOAPS / TN)",
-        "benefit": "₹1,200/month for destitute elderly.",
-        "rules": { "age": { "\$gte": 60 }, "destitute": true },
-        "also": ["Belonging to a below-poverty-line family"],
-        "docs": ["Aadhaar", "Age proof", "Income certificate", "Destitute affidavit", "Bank passbook"],
-        "steps": [
-          "Get the free application form from your e-Sevai centre or Taluk office.",
-          "Attach your documents and submit.",
-          "Officials verify the application (field check, then approval)."
-        ],
-        "links": [
-          ["Official eligibility page", "https://cra.tn.gov.in/eleg_schemes.php"],
-          ["e-Sevai portal", "https://www.tnesevai.tn.gov.in"]
-        ]
-      },
-      {
-        "name": "Destitute Widow Pension",
-        "benefit": "₹1,200/month for destitute widows.",
-        "rules": { "gender": "F", "marital": "widowed", "age": { "\$gte": 18 }, "destitute": true },
-        "also": ["Fixed assets not above ₹1,00,000"],
-        "docs": ["Destitute Widow Certificate (Revenue Dept)", "Husband's death certificate", "Income certificate", "Aadhaar-linked bank account"],
-        "steps": [
-          "Get the free application form from your e-Sevai centre or Taluk office.",
-          "Attach your documents and submit.",
-          "Officials verify the application."
-        ],
-        "links": [
-          ["Official eligibility page", "https://cra.tn.gov.in/eleg_schemes.php"],
-          ["e-Sevai portal", "https://www.tnesevai.tn.gov.in"]
-        ]
-      },
-      {
-        "name": "Destitute / Deserted Wives Pension",
-        "benefit": "₹1,200/month for destitute deserted or divorced women.",
-        "rules": { "gender": "F", "marital": "deserted", "age": { "\$gte": 30 }, "destitute": true },
-        "also": ["Legally divorced or deserted for at least 5 years"],
-        "docs": ["Aadhaar", "Desertion certificate / Court legal-separation decree", "Income certificate", "Bank passbook"],
-        "steps": [
-          "Get the free application form from your e-Sevai centre or Taluk office.",
-          "Attach your documents and submit."
-        ],
-        "links": [["Official eligibility page", "https://cra.tn.gov.in/eleg_schemes.php"]]
-      },
-      {
-        "name": "Unmarried Poor Women Pension",
-        "benefit": "₹1,200/month for destitute unmarried women aged 50+.",
-        "rules": { "gender": "F", "marital": "single", "age": { "\$gte": 50 }, "destitute": true },
-        "also": ["No income from other sources and limited assets"],
-        "docs": ["Aadhaar", "Unmarried certificate", "Income certificate", "Bank passbook"],
-        "steps": ["Apply at your e-Sevai centre or Taluk office with documents."],
-        "links": [["Official eligibility page", "https://cra.tn.gov.in/eleg_schemes.php"]]
-      },
-      {
-        "name": "Differently Abled Pension (DAPS)",
-        "benefit": "₹1,500/month for persons with 40%+ disability.",
-        "rules": { "age": { "\$gte": 18 }, "disability": { "\$gte": 40 } },
-        "also": ["Unemployed, or annual income not above ₹3 lakh"],
-        "docs": ["Disability Certificate (40%+)", "Aadhaar", "Bank passbook"],
-        "steps": ["Submit application form at e-Sevai centre or District Welfare Office for Differently Abled."],
-        "links": [["Official eligibility page", "https://cra.tn.gov.in/eleg_schemes.php"]]
-      },
-      {
-        "name": "CM Comprehensive Health Insurance (CMCHIS)",
-        "benefit": "Cashless treatment cover of ₹5 lakh per family per year.",
-        "rules": { "income": { "\$lt": 120000 } },
-        "also": ["Your name must be on the family card"],
-        "docs": ["Income certificate", "Family card", "Aadhaar"],
-        "steps": [
-          "Get an income certificate from VAO.",
-          "Visit the CMCHIS registration centre at Collectorate with documents.",
-          "Receive your smart card for cashless treatment."
-        ],
-        "links": [["Official CMCHIS portal", "https://www.cmchistn.com/"]]
-      },
-      {
-        "name": "Vidiyal Payanam (Free Bus Travel)",
-        "benefit": "Free travel for women in eligible government town buses.",
-        "rules": { "gender": "F" },
-        "also": ["Applies in government town buses"],
-        "docs": [],
-        "steps": ["Board eligible government town buses directly."],
-        "links": []
-      },
-      {
-        "name": "Naan Mudhalvan",
-        "benefit": "Free skilling, certification and employability programme for students and youth.",
-        "rules": {},
-        "verify": true,
-        "also": ["For students (Class 9-12 & college) and youth"],
-        "docs": [],
-        "steps": ["Register through your school/college or portal."],
-        "links": [["Main portal", "https://naanmudhalvan.tn.gov.in"]]
-      }
-    ];
+  /// Backwards-compatible scheme fetch
+  static Future<List<Scheme>> fetchSchemes() async {
+    final local = await getLocalOrStarterSchemes();
+    if (local.schemes.isNotEmpty) {
+      // Trigger background refresh
+      fetchSchemesFromServer(isRefresh: true).catchError((e) {
+        debugPrint('[ApiService] Background refresh error: $e');
+        return SchemeResult(schemes: [], source: SchemeSource.none, isError: true);
+      });
+      return local.schemes;
+    }
 
-    return raw.map((json) => Scheme.fromJson(json)).toList();
+    final serverRes = await fetchSchemesFromServer(isRefresh: false);
+    if (serverRes.schemes.isNotEmpty) {
+      return serverRes.schemes;
+    }
+    return local.schemes;
+  }
+
+  /// Adds a scheme directly to local device cache and Dashboard, and syncs to backend server
+  static Future<bool> addSchemeToDashboard(Scheme scheme) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final local = await getLocalOrStarterSchemes();
+      final List<Scheme> currentList = List.from(local.schemes);
+
+      // Check if already present by name
+      final existingIndex = currentList.indexWhere((s) => s.name.trim().toLowerCase() == scheme.name.trim().toLowerCase());
+      if (existingIndex >= 0) {
+        currentList[existingIndex] = scheme;
+      } else {
+        currentList.insert(0, scheme);
+      }
+
+      final jsonList = currentList.map((s) => s.toJson()).toList();
+      await prefs.setString(_keyCachedSchemesJson, jsonEncode(jsonList));
+      await prefs.setString(_keyCachedSchemesTime, DateTime.now().toIso8601String());
+      // Invalidate cached ETag so next server sync gets full updated list
+      await prefs.remove(_keyCachedSchemesEtag);
+
+      // Also persist to backend if accessible
+      try {
+        final uri = Uri.parse('$baseUrl/api/schemes');
+        await http.post(
+          uri,
+          headers: {'Content-Type': 'application/json; charset=utf-8'},
+          body: jsonEncode(scheme.toJson()),
+        ).timeout(const Duration(seconds: 8));
+      } catch (netErr) {
+        debugPrint('[ApiService] Server sync error for scheme, saved locally: $netErr');
+      }
+
+      return true;
+    } catch (e) {
+      debugPrint('[ApiService] Error adding scheme to dashboard: $e');
+      return false;
+    }
   }
 }
+
+enum SchemeSource {
+  none,
+  starterAsset,
+  deviceCache,
+  server,
+}
+
+class SchemeResult {
+  final List<Scheme> schemes;
+  final SchemeSource source;
+  final DateTime? lastUpdated;
+  final bool isError;
+  final String? errorMessage;
+
+  SchemeResult({
+    required this.schemes,
+    required this.source,
+    this.lastUpdated,
+    this.isError = false,
+    this.errorMessage,
+  });
+}
+

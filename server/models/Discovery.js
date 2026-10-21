@@ -15,6 +15,9 @@ const discoverySchema = new mongoose.Schema({
     docs: { type: [String], default: [] },
     steps: { type: [String], default: [] },
     origin: { type: String, default: 'ai-discovered' },
+    extractedBy: { type: String, default: 'rules' },
+    hasNameInHeadingOrTitle: { type: Boolean, default: true },
+    quotedFactsCount: { type: Number, default: 0 },
     lastChecked: { type: Date, default: Date.now },
     seen: { type: Boolean, default: false },
     notRelevant: { type: Boolean, default: false }

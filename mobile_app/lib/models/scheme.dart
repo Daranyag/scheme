@@ -46,6 +46,7 @@ class Scheme {
   final String nameTamil;
   final String category;
   final String benefit;
+  final String description;
   final String status;
   final Map<String, dynamic> rules;
   final List<String> unmappedCriteria;
@@ -58,8 +59,12 @@ class Scheme {
   final String verificationReason;
   final String pageUsed;
   final String lastVerified;
+  final String reviewStatus;
   final bool changedRecently;
   final List<Map<String, dynamic>> changeHistory;
+  final String displayState;
+  final String displayNotice;
+  final String officialExcerpt;
 
   // Aliases for backwards compatibility
   List<String> get also => unmappedCriteria;
@@ -73,6 +78,7 @@ class Scheme {
     this.nameTamil = '',
     this.category = 'General',
     required this.benefit,
+    this.description = '',
     this.status = 'ACTIVE',
     required this.rules,
     required this.unmappedCriteria,
@@ -85,8 +91,12 @@ class Scheme {
     this.verificationReason = 'no candidate link',
     this.pageUsed = '',
     this.lastVerified = '',
+    this.reviewStatus = 'approved',
     this.changedRecently = false,
     this.changeHistory = const [],
+    this.displayState = 'never_checked',
+    this.displayNotice = '',
+    this.officialExcerpt = '',
   });
 
   factory Scheme.fromJson(Map<String, dynamic> json) {
@@ -171,7 +181,8 @@ class Scheme {
       name: parsedName,
       nameTamil: json['nameTamil']?.toString() ?? '',
       category: json['category']?.toString() ?? json['department']?.toString() ?? 'General',
-      benefit: json['benefit'] ?? json['description'] ?? '',
+      benefit: json['benefit']?.toString() ?? '',
+      description: json['description']?.toString() ?? json['overview']?.toString() ?? json['details']?.toString() ?? '',
       status: json['status']?.toString() ?? 'ACTIVE',
       rules: json['rules'] is Map ? Map<String, dynamic>.from(json['rules']) : {},
       unmappedCriteria: criteria,
@@ -184,8 +195,12 @@ class Scheme {
       verificationReason: json['verificationReason']?.toString() ?? 'no candidate link',
       pageUsed: json['pageUsed']?.toString() ?? '',
       lastVerified: json['lastVerified']?.toString() ?? '',
+      reviewStatus: json['reviewStatus']?.toString() ?? 'approved',
       changedRecently: json['changedRecently'] == true,
       changeHistory: history,
+      displayState: json['displayState']?.toString() ?? 'never_checked',
+      displayNotice: json['displayNotice']?.toString() ?? '',
+      officialExcerpt: json['officialExcerpt']?.toString() ?? '',
     );
   }
 
@@ -214,6 +229,9 @@ class Scheme {
       'lastVerified': lastVerified,
       'changedRecently': changedRecently,
       'changeHistory': changeHistory,
+      'displayState': displayState,
+      'displayNotice': displayNotice,
+      'officialExcerpt': officialExcerpt,
     };
   }
 }

@@ -1,0 +1,22 @@
+{
+  "schemeShortTitle": "CMCHIS",
+  "schemeName": "Chief Minister's Comprehensive Health Insurance Scheme",
+  "nodalMinistryName": "Health and Family Welfare Department, Government of Tamil Nadu",
+  "briefDescription": "The Chief Minister's Comprehensive Health Insurance Scheme (CMCHIS) provides quality healthcare to eligible families in Tamil Nadu.",
+  "benefits": [
+    "Under CMCHIS, cashless health insurance cover up to ₹5,00,000 per family per year is provided on a family floater basis."
+  ],
+  "eligibilityCriteria": [
+    "The applicant and family must be permanent residents of Tamil Nadu.",
+    "The annual family income must be less than ₹1,20,000 per annum as certified by Revenue authorities.",
+    "Members listed in eligible Ration Card / Family Card are covered."
+  ],
+  "documentsRequired": [
+    "Ration Card (Smart Card)",
+    "Aadhaar Card",
+    "Income Certificate issued by VAO / Tahsildar"
+  ],
+  "applicationProcess": [
+    "Visit the designated CMCHIS enrolment centre or District Collectorate with required documents."
+  ]
+}

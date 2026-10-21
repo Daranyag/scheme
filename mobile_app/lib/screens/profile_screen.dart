@@ -5,7 +5,6 @@ import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
 import 'account_screen.dart';
 import 'login_screen.dart';
-import 'signup_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   final VoidCallback? onSaved;
@@ -66,6 +65,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _loadProfile() async {
     _profile = await UserProfile.loadFromPrefs();
+    // Normalize incomeRangeBand so it matches dropdown values
+    if (_profile.incomeRangeBand != null) {
+      if (_profile.incomeRangeBand == 'under 1 lakh') {
+        _profile.incomeRangeBand = 'under ₹1 lakh';
+      } else if (_profile.incomeRangeBand == '1–2.5 lakh') {
+        _profile.incomeRangeBand = '₹1 to 2.5 lakh';
+      } else if (_profile.incomeRangeBand == '2.5–5 lakh') {
+        _profile.incomeRangeBand = '₹2.5 to 5 lakh';
+      } else if (_profile.incomeRangeBand == 'above 5 lakh') {
+        _profile.incomeRangeBand = 'above ₹5 lakh';
+      }
+    }
     _populateControllers();
     setState(() {
       _isLoading = false;
@@ -126,6 +137,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     if (_profile.role == 'College student' || _profile.role == 'Higher studies') {
       _profile.highered = true;
+    }
+
+    // Derive "self" automatically for unmarried, widowed or deserted women who say they head their household
+    if (_profile.gender == 'F' &&
+        (_profile.marital == 'unmarried' || _profile.marital == 'widowed' || _profile.marital == 'deserted')) {
+      if (_profile.famhead && (_profile.rationCardHead == null || _profile.rationCardHead!.isEmpty)) {
+        _profile.rationCardHead = 'self';
+      }
     }
   }
 
@@ -201,7 +220,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF1E3A8A),
+              backgroundColor: Theme.of(context).colorScheme.primary,
               foregroundColor: Colors.white,
             ),
             onPressed: () async {
@@ -784,6 +803,64 @@ class _ProfileScreenState extends State<ProfileScreen> {
           },
         ),
         const SizedBox(height: 12),
+        // Pregnancy & Maternity follow-ups (for women)
+        if (_profile.gender == 'F' || _profile.gender == 'Female') ...[
+          DropdownButtonFormField<bool>(
+            initialValue: _profile.isPregnant,
+            decoration: const InputDecoration(
+              labelText: 'Are you currently pregnant?',
+              helperText: 'For Dr. Muthulakshmi Reddy Maternity Scheme (₹18,000 + Nutrition Kits)',
+              border: OutlineInputBorder(),
+            ),
+            items: const [
+              DropdownMenuItem(value: true, child: Text('Yes, currently pregnant')),
+              DropdownMenuItem(value: false, child: Text('No')),
+            ],
+            onChanged: (val) {
+              _profile.isPregnant = val;
+              _onFieldChanged();
+            },
+          ),
+          const SizedBox(height: 12),
+          DropdownButtonFormField<bool>(
+            initialValue: _profile.hasNewborn,
+            decoration: const InputDecoration(
+              labelText: 'Have you recently had a child (baby aged 0–1 year)?',
+              helperText: 'For Thaimaaman Seer Thittam (Gold ring scheme for govt hospital delivery)',
+              border: OutlineInputBorder(),
+            ),
+            items: const [
+              DropdownMenuItem(value: true, child: Text('Yes, delivered a baby recently')),
+              DropdownMenuItem(value: false, child: Text('No')),
+            ],
+            onChanged: (val) {
+              _profile.hasNewborn = val;
+              _onFieldChanged();
+            },
+          ),
+          if (_profile.hasNewborn == true || _profile.isPregnant == true) ...[
+            const SizedBox(height: 12),
+            DropdownButtonFormField<String>(
+              initialValue: _profile.deliveryPlace,
+              decoration: const InputDecoration(
+                labelText: 'Delivery hospital / Planned hospital',
+                border: OutlineInputBorder(),
+              ),
+              items: const [
+                DropdownMenuItem(value: 'Government Hospital', child: Text('Government Hospital / PHC (eligible for gold ring & kits)')),
+                DropdownMenuItem(value: 'Private Hospital', child: Text('Private Hospital / Nursing Home')),
+                DropdownMenuItem(value: 'Home / Other', child: Text('Home / Other')),
+              ],
+              onChanged: (val) {
+                _profile.deliveryPlace = val;
+                _onFieldChanged();
+              },
+            ),
+          ],
+          const SizedBox(height: 12),
+        ],
+
+
       ],
 
       // Widowed follow-ups
@@ -873,17 +950,46 @@ class _ProfileScreenState extends State<ProfileScreen> {
         const SizedBox(height: 12),
       ],
 
-      // CheckboxListTile for Head of Family
-      CheckboxListTile(
-        title: const Text('I am the head of my family'),
-        subtitle: const Text('Name listed on the ration card as family head'),
-        value: _profile.famhead,
+      // Ration card head
+      DropdownButtonFormField<String>(
+        initialValue: _profile.rationCardHead,
+        isExpanded: true,
+        decoration: const InputDecoration(
+          labelText: 'Who is named as head of your family on the ration card?',
+          border: OutlineInputBorder(),
+        ),
+        items: const [
+          DropdownMenuItem(value: 'self', child: Text('Me')),
+          DropdownMenuItem(value: 'spouse', child: Text('My husband (I am his wife)')),
+          DropdownMenuItem(value: 'other', child: Text('Another family member')),
+          DropdownMenuItem(value: 'none', child: Text('I do not have a ration card')),
+          DropdownMenuItem(value: 'unknown', child: Text('Not sure')),
+        ],
         onChanged: (val) {
-          _profile.famhead = val ?? false;
+          _profile.rationCardHead = val;
+          _profile.famhead = (val == 'self');
           _onFieldChanged();
         },
       ),
-      const SizedBox(height: 8),
+      const SizedBox(height: 12),
+
+      // Permanent resident of Tamil Nadu?
+      DropdownButtonFormField<bool>(
+        initialValue: _profile.isTnResident,
+        decoration: const InputDecoration(
+          labelText: 'Permanent resident of Tamil Nadu? (Optional)',
+          border: OutlineInputBorder(),
+        ),
+        items: const [
+          DropdownMenuItem(value: true, child: Text('Yes')),
+          DropdownMenuItem(value: false, child: Text('No')),
+        ],
+        onChanged: (val) {
+          _profile.isTnResident = val;
+          _onFieldChanged();
+        },
+      ),
+      const SizedBox(height: 12),
 
       DropdownButtonFormField<String>(
         initialValue: _profile.rationCardType,
@@ -944,6 +1050,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _profile.role = val;
           if (val == 'College student' || val == 'Higher studies') {
             _profile.highered = true;
+          } else if (val == 'Completed studies' || val == 'Not studying') {
+            _profile.highered = false;
           }
           _onFieldChanged();
         },
@@ -991,18 +1099,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
         const SizedBox(height: 12),
       ],
 
-      if (_profile.role == 'Completed studies') ...[
+      if (_profile.role == 'Completed studies' || _profile.role == 'Not studying') ...[
         DropdownButtonFormField<String>(
           initialValue: _profile.highestQual,
           decoration: const InputDecoration(
-            labelText: 'Highest qualification',
+            labelText: 'Highest qualification completed',
             border: OutlineInputBorder(),
           ),
           items: const [
             DropdownMenuItem(value: 'Below 10th', child: Text('Below 10th')),
             DropdownMenuItem(value: '10th Pass', child: Text('10th Pass')),
             DropdownMenuItem(value: '12th Pass', child: Text('12th Pass')),
-            DropdownMenuItem(value: 'Graduate', child: Text('Graduate')),
+            DropdownMenuItem(value: 'Graduate', child: Text('Graduate (Degree completed)')),
             DropdownMenuItem(value: 'Post-Graduate', child: Text('Post-Graduate')),
           ],
           onChanged: (val) {
@@ -1010,6 +1118,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
             _onFieldChanged();
           },
         ),
+        if ((_profile.highestQual == 'Graduate' || _profile.highestQual == 'Post-Graduate') &&
+            _profile.workStatus == 'Unemployed') ...[
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: Colors.blue.shade50,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.blue.shade200),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.info_outline, size: 18, color: Colors.blue.shade800),
+                const SizedBox(width: 8),
+                const Expanded(
+                  child: Text(
+                    'Unemployed graduate profile: Eligible for TN Unemployed Youth Welfare Assistance, TVK youth welfare schemes & Naan Mudhalvan competitive exam stipends.',
+                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF1E3A8A)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
         const SizedBox(height: 12),
       ],
 
@@ -1242,6 +1374,58 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
         const SizedBox(height: 12),
 
+        if (_profile.workStatus == 'Self-employed') ...[
+          Card(
+            elevation: 0,
+            color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.25),
+            child: Padding(
+              padding: const EdgeInsets.all(12.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Manufacturing & Industrial Enterprises (for DIC Subsidies)',
+                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                  ),
+                  const SizedBox(height: 4),
+                  CheckboxListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Manufacturing / Industrial Unit Owner'),
+                    subtitle: const Text('Engaged in micro, small or medium manufacturing / industrial unit'),
+                    value: _profile.isManufacturer,
+                    onChanged: (val) {
+                      setState(() {
+                        _profile.isManufacturer = val ?? false;
+                      });
+                      _onFieldChanged();
+                    },
+                  ),
+                  if (_profile.isManufacturer) ...[
+                    const SizedBox(height: 8),
+                    DropdownButtonFormField<String>(
+                      initialValue: _profile.enterpriseType ?? 'Micro',
+                      decoration: const InputDecoration(
+                        labelText: 'Enterprise Category',
+                        border: OutlineInputBorder(),
+                      ),
+                      items: const [
+                        DropdownMenuItem(value: 'Micro', child: Text('Micro Enterprise (< ₹1 Cr investment)')),
+                        DropdownMenuItem(value: 'Small', child: Text('Small Enterprise (< ₹10 Cr investment)')),
+                        DropdownMenuItem(value: 'Medium', child: Text('Medium Enterprise (< ₹50 Cr investment)')),
+                      ],
+                      onChanged: (val) {
+                        _profile.enterpriseType = val;
+                        _onFieldChanged();
+                      },
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+        ],
+
         if (_profile.workStatus == 'Farmer') ...[
           DropdownButtonFormField<String>(
             initialValue: _profile.farmerType,
@@ -1258,6 +1442,59 @@ class _ProfileScreenState extends State<ProfileScreen> {
               _profile.farmerType = val;
               _onFieldChanged();
             },
+          ),
+          const SizedBox(height: 12),
+          DropdownButtonFormField<bool>(
+            initialValue: _profile.isFarming,
+            decoration: const InputDecoration(
+              labelText: 'Are you actively farming and cultivating crops?',
+              border: OutlineInputBorder(),
+            ),
+            items: const [
+              DropdownMenuItem(value: true, child: Text('Yes, currently actively cultivating')),
+              DropdownMenuItem(value: false, child: Text('No / Inactive')),
+            ],
+            onChanged: (val) {
+              setState(() {
+                _profile.isFarming = val;
+              });
+              _onFieldChanged();
+            },
+          ),
+          const SizedBox(height: 12),
+          const Text('What crops do you cultivate?', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+          const SizedBox(height: 4),
+          const Text('Helps match schemes like Gypsum subsidy, certified seeds, pulses mission, etc.', style: TextStyle(fontSize: 11, color: Colors.grey)),
+          const SizedBox(height: 6),
+          Wrap(
+            spacing: 8,
+            runSpacing: 4,
+            children: [
+              'Paddy (நெல்)',
+              'Oil seeds (எண்ணெய் வித்துக்கள்)',
+              'Groundnut (வேர்க்கடலை)',
+              'Pulses (பருப்பு வகைகள்)',
+              'Cotton (பருத்தி)',
+              'Sugarcane (கரும்பு)',
+              'Millets (சிறு தானியங்கள்)',
+              'Horticulture / Vegetables (தோட்டக்கலை)',
+            ].map((crop) {
+              final isChecked = _profile.cropsCultivated.contains(crop);
+              return FilterChip(
+                label: Text(crop),
+                selected: isChecked,
+                onSelected: (selected) {
+                  setState(() {
+                    if (selected) {
+                      _profile.cropsCultivated.add(crop);
+                    } else {
+                      _profile.cropsCultivated.remove(crop);
+                    }
+                  });
+                  _onFieldChanged();
+                },
+              );
+            }).toList(),
           ),
           const SizedBox(height: 12),
         ],
@@ -1374,16 +1611,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
       const SizedBox(height: 12),
 
       DropdownButtonFormField<String>(
-        initialValue: _profile.incomeRangeBand,
+        initialValue: (() {
+          final val = _profile.incomeRangeBand;
+          if (val == null) return null;
+          if (val == 'under 1 lakh' || val == 'under ₹1 lakh') return 'under ₹1 lakh';
+          if (val == '1–2.5 lakh' || val == '₹1 to 2.5 lakh') return '₹1 to 2.5 lakh';
+          if (val == '2.5–5 lakh' || val == '₹2.5 to 5 lakh') return '₹2.5 to 5 lakh';
+          if (val == 'above 5 lakh' || val == 'above ₹5 lakh') return 'above ₹5 lakh';
+          if (val == 'Not sure') return 'Not sure';
+          return null;
+        })(),
         decoration: const InputDecoration(
           labelText: 'Income range (if exact amount unknown)',
           border: OutlineInputBorder(),
         ),
         items: const [
-          DropdownMenuItem(value: 'under 1 lakh', child: Text('Under ₹1 lakh')),
-          DropdownMenuItem(value: '1–2.5 lakh', child: Text('₹1 lakh – ₹2.5 lakh')),
-          DropdownMenuItem(value: '2.5–5 lakh', child: Text('₹2.5 lakh – ₹5 lakh')),
-          DropdownMenuItem(value: 'above 5 lakh', child: Text('Above ₹5 lakh')),
+          DropdownMenuItem(value: 'under ₹1 lakh', child: Text('Under ₹1 lakh')),
+          DropdownMenuItem(value: '₹1 to 2.5 lakh', child: Text('₹1 lakh – ₹2.5 lakh')),
+          DropdownMenuItem(value: '₹2.5 to 5 lakh', child: Text('₹2.5 lakh – ₹5 lakh')),
+          DropdownMenuItem(value: 'above ₹5 lakh', child: Text('Above ₹5 lakh')),
           DropdownMenuItem(value: 'Not sure', child: Text('Not sure')),
         ],
         onChanged: (val) {
@@ -1391,6 +1637,87 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _profile.incomeIsApproximate = true;
           _onFieldChanged();
         },
+      ),
+      const SizedBox(height: 12),
+
+      // Loan interest questions for all profiles
+      Card(
+        elevation: 0,
+        color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.35),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+          side: BorderSide(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3)),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(12.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.account_balance, size: 20, color: Theme.of(context).colorScheme.primary),
+                  const SizedBox(width: 8),
+                  const Expanded(
+                    child: Text(
+                      'Loan & Credit Requirements',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              DropdownButtonFormField<bool>(
+                initialValue: _profile.interestedInLoan,
+                decoration: const InputDecoration(
+                  labelText: 'Are you interested in applying for a government / bank loan?',
+                  helperText: 'For jewel loans, cooperative agriculture credit, consumer & housing loans',
+                  border: OutlineInputBorder(),
+                  fillColor: Colors.white,
+                  filled: true,
+                ),
+                items: const [
+                  DropdownMenuItem(value: true, child: Text('Yes, interested in applying for a loan')),
+                  DropdownMenuItem(value: false, child: Text('No, not interested in any loan')),
+                ],
+                onChanged: (val) {
+                  setState(() {
+                    _profile.interestedInLoan = val;
+                    if (val == false) {
+                      _profile.loanType = null;
+                    }
+                  });
+                  _onFieldChanged();
+                },
+              ),
+              if (_profile.interestedInLoan == true) ...[
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  initialValue: _profile.loanType,
+                  isExpanded: true,
+                  decoration: const InputDecoration(
+                    labelText: 'What type of loan are you looking for?',
+                    border: OutlineInputBorder(),
+                    fillColor: Colors.white,
+                    filled: true,
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: 'Jewel loan', child: Text('Gold / Jewel Loan (நகைக்கடன்)')),
+                    DropdownMenuItem(value: 'Land / Mortgage loan', child: Text('Land / Agriculture Mortgage Loan (நிலக்கடன்)')),
+                    DropdownMenuItem(value: 'Consumer durable loan', child: Text('Consumer Durables / Household Appliance Loan')),
+                    DropdownMenuItem(value: 'Two-wheeler loan', child: Text('Two-Wheeler Loan (இருசக்கர வாகனக் கடன்)')),
+                    DropdownMenuItem(value: 'Business loan', child: Text('Micro / Small Business Loan (தொழில் கடன்)')),
+                  ],
+                  onChanged: (val) {
+                    setState(() {
+                      _profile.loanType = val;
+                    });
+                    _onFieldChanged();
+                  },
+                ),
+              ],
+            ],
+          ),
+        ),
       ),
       const SizedBox(height: 12),
 
@@ -1464,6 +1791,98 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
       const SizedBox(height: 12),
 
+      // Dynamic prompt if user owns land and isn't already asked under Farmer work status
+      if (((double.tryParse(_landWetController.text) ?? _profile.landWetAcres ?? 0) > 0 ||
+           (double.tryParse(_landDryController.text) ?? _profile.landDryAcres ?? 0) > 0) &&
+          _profile.workStatus != 'Farmer') ...[
+        Card(
+          elevation: 0,
+          color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.35),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+            side: BorderSide(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3)),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(12.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.agriculture, size: 20, color: Theme.of(context).colorScheme.primary),
+                    const SizedBox(width: 8),
+                    const Expanded(
+                      child: Text(
+                        'Agricultural Land Cultivation',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                DropdownButtonFormField<bool>(
+                  initialValue: _profile.isFarming,
+                  decoration: const InputDecoration(
+                    labelText: 'Are you actively farming on your land?',
+                    border: OutlineInputBorder(),
+                    fillColor: Colors.white,
+                    filled: true,
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: true, child: Text('Yes, actively farming / cultivating')),
+                    DropdownMenuItem(value: false, child: Text('No (leased out / uncultivated)')),
+                  ],
+                  onChanged: (val) {
+                    setState(() {
+                      _profile.isFarming = val;
+                    });
+                    _onFieldChanged();
+                  },
+                ),
+                if (_profile.isFarming == true) ...[
+                  const SizedBox(height: 12),
+                  const Text('What crops are cultivated on this land?', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                  const SizedBox(height: 4),
+                  const Text('For subsidies like certified seeds, gypsum, pulses & micro-irrigation', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                  const SizedBox(height: 6),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 4,
+                    children: [
+                      'Paddy (நெல்)',
+                      'Oil seeds (எண்ணெய் வித்துக்கள்)',
+                      'Groundnut (வேர்க்கடலை)',
+                      'Pulses (பருப்பு வகைகள்)',
+                      'Cotton (பருத்தி)',
+                      'Sugarcane (கரும்பு)',
+                      'Millets (சிறு தானியங்கள்)',
+                      'Horticulture / Vegetables (தோட்டக்கலை)',
+                    ].map((crop) {
+                      final isChecked = _profile.cropsCultivated.contains(crop);
+                      return FilterChip(
+                        label: Text(crop),
+                        selected: isChecked,
+                        onSelected: (selected) {
+                          setState(() {
+                            if (selected) {
+                              _profile.cropsCultivated.add(crop);
+                            } else {
+                              _profile.cropsCultivated.remove(crop);
+                            }
+                          });
+                          _onFieldChanged();
+                        },
+                      );
+                    }).toList(),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+      ],
+
       TextFormField(
         controller: _electricityUnitsController,
         keyboardType: TextInputType.number,
@@ -1496,7 +1915,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
       const SizedBox(height: 12),
 
       DropdownButtonFormField<String>(
-        initialValue: _profile.fixedAssetsBand,
+        initialValue: (() {
+          final val = _profile.fixedAssetsBand;
+          if (val == null) return null;
+          if (val == 'under ₹1 lakh' || val == 'under 1 lakh') return 'under ₹1 lakh';
+          if (val == 'above ₹1 lakh' || val == 'above 1 lakh') return 'above ₹1 lakh';
+          if (val == 'Not sure') return 'Not sure';
+          return null;
+        })(),
         decoration: const InputDecoration(
           labelText: 'Fixed assets value',
           border: OutlineInputBorder(),
@@ -1563,6 +1989,84 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _profile.disabilityCertAvailable = val;
           _onFieldChanged();
         },
+      ),
+      const SizedBox(height: 12),
+
+      Card(
+        elevation: 0,
+        color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.25),
+        child: Padding(
+          padding: const EdgeInsets.all(12.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Vision & Eye Health',
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+              ),
+              const SizedBox(height: 4),
+              CheckboxListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Eye / Vision Problem or Needs Spectacles'),
+                subtitle: const Text('Requires prescription eyeglasses, spectacles subsidy, or cataract treatment'),
+                value: _profile.hasEyeProblem,
+                onChanged: (val) {
+                  setState(() {
+                    _profile.hasEyeProblem = val ?? false;
+                  });
+                  _onFieldChanged();
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+      const SizedBox(height: 12),
+
+      Card(
+        elevation: 0,
+        color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.25),
+        child: Padding(
+          padding: const EdgeInsets.all(12.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Medical & Critical Illnesses (for Health Schemes & CMCHIS)',
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+              ),
+              const SizedBox(height: 6),
+              ...[
+                'Cancer',
+                'Kidney / Dialysis',
+                'Heart Disease / Surgery',
+                'Tuberculosis (TB)',
+                'Leprosy',
+                'Mental Health Condition',
+              ].map((condition) {
+                final isSelected = _profile.healthConditions.contains(condition);
+                return CheckboxListTile(
+                  contentPadding: EdgeInsets.zero,
+                  dense: true,
+                  title: Text(condition),
+                  value: isSelected,
+                  onChanged: (val) {
+                    setState(() {
+                      if (val == true) {
+                        if (!_profile.healthConditions.contains(condition)) {
+                          _profile.healthConditions.add(condition);
+                        }
+                      } else {
+                        _profile.healthConditions.remove(condition);
+                      }
+                    });
+                    _onFieldChanged();
+                  },
+                );
+              }),
+            ],
+          ),
+        ),
       ),
       const SizedBox(height: 8),
     ];

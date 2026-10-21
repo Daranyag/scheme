@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../main.dart';
 import '../providers/auth_provider.dart';
+import '../widgets/server_address_dialog.dart';
 import 'privacy_note_dialog.dart';
 
 class SignUpScreen extends StatefulWidget {
@@ -75,6 +76,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Sign Up'),
+        actions: [
+          IconButton(
+            tooltip: 'Server Settings',
+            icon: const Icon(Icons.settings_ethernet),
+            onPressed: () => showServerAddressDialog(context),
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20.0),
@@ -106,9 +114,29 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(color: Colors.red.withValues(alpha: 0.4)),
                     ),
-                    child: Text(
-                      auth.errorMessage!,
-                      style: const TextStyle(color: Colors.red, fontWeight: FontWeight.w600),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          auth.errorMessage!,
+                          style: const TextStyle(color: Colors.red, fontWeight: FontWeight.w600),
+                        ),
+                        if (auth.errorMessage!.contains('network') || auth.errorMessage!.contains('internet')) ...[
+                          const SizedBox(height: 8),
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: TextButton.icon(
+                              onPressed: () => showServerAddressDialog(context),
+                              icon: const Icon(Icons.settings, size: 16),
+                              label: const Text('Change Server Address', style: TextStyle(fontSize: 12)),
+                              style: TextButton.styleFrom(
+                                visualDensity: VisualDensity.compact,
+                                foregroundColor: Colors.red.shade900,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                   ),
                   const SizedBox(height: 16),

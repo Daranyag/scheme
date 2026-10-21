@@ -41,23 +41,32 @@ function processWithProfile(schemes, profile) {
 }
 
 async function level1LocalDb(normQuery, profile) {
-    // Exact, prefix, fuzzy via regex for simplicity in MVP
-    const parts = normQuery.split(' ').filter(Boolean);
+    const parts = normQuery.split(' ').filter(p => p.length >= 2);
     if (parts.length === 0) return [];
-    const regexes = parts.map(p => new RegExp(p, 'i'));
     
     const showPending = process.env.SHOW_PENDING_TO_USERS === 'true';
     const reviewStatusFilter = showPending ? { $in: ['approved', 'pending'] } : 'approved';
 
+    const orConditions = [];
+    // Whole query regex
+    const wholeRegex = new RegExp(normQuery.trim(), 'i');
+    orConditions.push({ name: wholeRegex });
+    orConditions.push({ nameTamil: wholeRegex });
+    orConditions.push({ category: wholeRegex });
+    orConditions.push({ benefit: wholeRegex });
+    orConditions.push({ aliases: wholeRegex });
+
+    // Word parts regexes
+    for (const p of parts) {
+        const r = new RegExp(p, 'i');
+        orConditions.push({ name: r });
+        orConditions.push({ nameTamil: r });
+        orConditions.push({ aliases: r });
+    }
+
     const results = await Scheme.find({
         reviewStatus: reviewStatusFilter,
-        $or: [
-            { name: { $in: regexes } },
-            { nameTamil: { $in: regexes } },
-            { category: { $in: regexes } },
-            { benefit: { $in: regexes } },
-            { aliases: { $in: regexes } }
-        ]
+        $or: orConditions
     }).limit(10);
     return processWithProfile(results, profile);
 }
@@ -81,31 +90,8 @@ async function level3LiveData(normQuery, profile) {
 }
 
 async function level4LiveLookup(query) {
-    // Live grounding via Gemini Custom Search
-    const gemini = require('../lib/gemini');
-    try {
-        const liveResult = await gemini.runGroundedSearch({
-            prompt: `Find government schemes in Tamil Nadu related to: ${query}`,
-            contents: [{ role: 'user', parts: [{ text: `Find Tamil Nadu government schemes related to: ${query}` }] }]
-        });
-        
-        if (liveResult.skipped || !liveResult.text) return [];
-        
-        return [{
-            _id: 'live-' + Date.now(),
-            name: `Live Answer for: ${query}`,
-            benefit: liveResult.text,
-            category: 'Live Search',
-            searchVerdict: 'live_answer',
-            isVirtual: true,
-            rules: {},
-            eligibilityRules: {},
-            officialLinks: []
-        }];
-    } catch (e) {
-        console.error("Level 4 live lookup failed:", e);
-        return [];
-    }
+    // Discovery becomes link-based only (Zero AI)
+    return [];
 }
 
 async function logSearch(query, normQuery, language, levelReached, resultCount) {

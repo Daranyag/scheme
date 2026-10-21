@@ -1,3 +1,4 @@
+require('./lib/networkGuard');
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -7,6 +8,7 @@ const rateLimit = require('express-rate-limit');
 const os = require('os');
 const fs = require('fs');
 const path = require('path');
+const compression = require('compression');
 
 dotenv.config();
 
@@ -43,27 +45,16 @@ async function seedLocalIfEmpty() {
   }
 }
 
-// Connect to MongoDB with fallback
-const mongoUri = process.env.MONGODB_URI;
-mongoose.connect(mongoUri)
-  .then(() => {
-    dbMode = 'atlas';
-    console.log('MongoDB connected (atlas)');
-  })
-  .catch(async (err) => {
-    const safeError = (err.message || '').replace(/mongodb(\+srv)?:\/\/[^@]+@/g, 'mongodb$1://***:***@');
-    console.error('Primary MongoDB connection failed:', safeError);
-    if (process.env.MONGODB_FALLBACK !== 'false') {
-      try {
-        await mongoose.connect('mongodb://127.0.0.1:27017/tn_schemes');
-        dbMode = 'local';
-        console.warn('USING LOCAL DATABASE, data may differ from Atlas');
-        await seedLocalIfEmpty();
-      } catch (fallbackErr) {
-        console.error('Local MongoDB fallback failed:', fallbackErr.message);
-      }
-    }
-  });
+const chalk = require('chalk');
+const { initMongoConnection, getDbStatus } = require('./lib/mongo');
+
+// Connect to MongoDB with retries and fallback
+initMongoConnection({
+  uri: process.env.MONGODB_URI,
+  fallbackUri: 'mongodb://127.0.0.1:27017/tn_schemes',
+  fallbackEnabled: process.env.MONGODB_FALLBACK !== 'false',
+  seedLocalIfEmpty
+});
 
 // Trigger startup Gemini model resolution if explicitly enabled
 if (process.env.RUN_JOBS_ON_START === 'true') {
@@ -101,6 +92,7 @@ app.use((req, res, next) => {
 });
 
 // Security & Parsing Middleware
+app.use(compression());
 app.use(helmet({
   contentSecurityPolicy: false,
 }));
@@ -162,10 +154,12 @@ const readline = require('readline');
 // Health Check
 app.get('/api/health', async (req, res) => {
     const aiUsage = await getQuotaAndBudgetStatus();
+    const dbStatus = getDbStatus();
     res.json({
       status: 'ok',
       timestamp: new Date(),
-      database: dbMode,
+      database: dbStatus.database,
+      dbReason: dbStatus.dbReason,
       aiUsage
     });
 });
@@ -213,27 +207,48 @@ const server = app.listen(port, host, async () => {
     // Print Banner
     try {
       const ai = await getQuotaAndBudgetStatus();
-      const sched = process.env.ENABLE_SCHEDULER === 'true' ? 'ON' : 'OFF (set ENABLE_SCHEDULER=true to turn on)';
-      const rjob = process.env.RUN_JOBS_ON_START === 'true' ? 'ON' : 'OFF';
-      const disc = process.env.ENABLE_DISCOVERY === 'true' ? 'ON' : 'OFF';
-      const aiMode = process.env.FETCH_ONLY === 'true' ? 'fetch-only' : 'full';
-      const mods = `${ai.models.mainModel}, ${ai.models.fallbackModel}`;
+      const dbStatus = getDbStatus();
+      const schedOn = process.env.ENABLE_SCHEDULER === 'true';
+      const rjobOn = process.env.RUN_JOBS_ON_START === 'true';
+      const discOn = process.env.ENABLE_DISCOVERY === 'true';
+      const aiMode = process.env.FETCH_ONLY === 'true' ? 'fetch-only' : (process.env.AI_MODE || 'auto');
+
+      const isAiOff = (process.env.AI_MODE || '').toLowerCase() === 'off' || (process.env.FETCH_ONLY || '').toLowerCase() === 'true';
+
+      const sched = schedOn ? 'ON' : 'OFF (set ENABLE_SCHEDULER=true to turn on)';
+      const rjob = rjobOn ? 'ON' : 'OFF';
+      const disc = discOn ? 'ON' : 'OFF';
+      const mods = isAiOff ? 'None (AI OFF)' : `${ai.models.mainModel}, ${ai.models.backgroundModel}`;
       
       console.log(`\n======================================================`);
-      console.log(`Scheduler: ${sched} | Run jobs on start: ${rjob} | Discovery: ${disc} | AI mode: ${aiMode} | Database: ${dbMode} | Models: ${mods} | Gemini calls today: ${ai.callsUsedToday} of ${ai.dailyCap}`);
+      if (isAiOff) {
+        console.log(`Scheduler: ${sched} | Run jobs on start: ${rjob} | Discovery: ${disc} | AI mode: ${aiMode} | Database: ${dbStatus.database} | AI: OFF, 0 Gemini calls will be made | Expected Gemini calls: 0`);
+      } else {
+        console.log(`Scheduler: ${sched} | Run jobs on start: ${rjob} | Discovery: ${disc} | AI mode: ${aiMode} | Database: ${dbStatus.database} | Models: ${mods} | Gemini calls today: ${ai.callsUsedToday} of ${ai.dailyCap}`);
+      }
       console.log(`======================================================\n`);
+
+      const hasGeminiKey = Boolean(process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY.trim());
+      if (!isAiOff && hasGeminiKey && (schedOn || rjobOn || discOn)) {
+        let estimatedCalls = 35;
+        try {
+          const schemeCount = await Scheme.countDocuments();
+          if (schemeCount > 0) estimatedCalls = schemeCount;
+        } catch (e) {}
+        console.log(chalk.red(`[WARNING] Automated jobs are active with Gemini key configured. Switches: Scheduler=${schedOn ? 'ON' : 'OFF'}, Run on start=${rjobOn ? 'ON' : 'OFF'}, Discovery=${discOn ? 'ON' : 'OFF'}. Estimated Gemini calls: up to ${estimatedCalls} call(s).`));
+      } else if (isAiOff) {
+        console.log(chalk.green(`[AI Config] AI: OFF, 0 Gemini calls will be made. Expected Gemini calls: 0. Scraper engine active.`));
+      }
       
       const isLiveAi = process.env.npm_lifecycle_event === 'live:ai';
       const skipConfirm = process.argv.includes('--yes');
       
       if (isLiveAi && !skipConfirm) {
-        // Need to ask for confirmation
-        // Estimate expected number of calls. Let's just say "Expected Gemini calls: up to X". 
-        // This is done in verificationJob, but we need to print it first.
-        // I will just print "Expected number of Gemini calls will be printed by the job."
-        // Wait, the prompt says "make it print the expected number of Gemini calls first and ask for confirmation".
         const SchemeModel = require('./models/Scheme');
-        const count = await SchemeModel.countDocuments();
+        let count = 35;
+        try {
+          count = await SchemeModel.countDocuments();
+        } catch (e) {}
         console.log(`Expected number of Gemini calls for verification: up to ${count} call(s).`);
         const rl = readline.createInterface({
           input: process.stdin,

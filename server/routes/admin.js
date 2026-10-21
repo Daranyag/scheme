@@ -48,6 +48,45 @@ router.get('/pending', adminAuth, async (req, res) => {
   }
 });
 
+// GET /api/admin/needs-better-recipe - Ranked by missing fields and dashboard importance
+router.get('/needs-better-recipe', adminAuth, async (req, res) => {
+  try {
+    const { calculateCompleteness } = require('../lib/completeness');
+    const { splitSections } = require('../scrapers/sectionSplitter');
+    const schemes = await Scheme.find().lean();
+    const Fact = require('../models/Fact');
+
+    const list = [];
+    for (const s of schemes) {
+      let facts = [];
+      try { facts = await Fact.find({ schemeId: s._id }).lean(); } catch (e) {}
+      const comp = calculateCompleteness(s, facts);
+      if (comp.score < 80 || s.verificationStatus === 'fetched_not_parsed' || comp.missingFields.length > 0) {
+        const sections = splitSections(s.rawSourceText || s.benefit || '', s.sourceUrl || '');
+        list.push({
+          schemeId: s._id,
+          name: s.name,
+          completenessScore: comp.score,
+          missingFields: comp.missingFields,
+          sectionsFound: sections.map(sec => ({ heading: sec.heading, category: sec.category })),
+          cleanedTextSample: (s.rawSourceText || s.benefit || '').substring(0, 300),
+          importance: (s.officialLinks || []).length * 10 + (100 - comp.score)
+        });
+      }
+    }
+
+    list.sort((a, b) => b.importance - a.importance);
+
+    res.json({
+      ok: true,
+      count: list.length,
+      schemes: list
+    });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
 // PATCH /api/admin/schemes/:id/review - Approve or Reject a pending record
 router.patch('/schemes/:id/review', adminAuth, async (req, res) => {
   try {
@@ -76,12 +115,13 @@ router.patch('/schemes/:id/review', adminAuth, async (req, res) => {
   }
 });
 
-// POST /api/admin/refresh - Run live crawler on demand
+// POST /api/admin/refresh - Run live crawler on demand via worker process
 router.post('/refresh', adminAuth, async (req, res) => {
   try {
-    const results = await runLiveCrawler();
+    const { dispatchJob } = require('../services/workerManager');
+    const results = await dispatchJob('crawler');
     res.json({
-      message: 'On-demand crawl completed successfully.',
+      message: 'On-demand crawl completed successfully in worker process.',
       results
     });
   } catch (err) {
@@ -104,6 +144,9 @@ router.get('/verification-report', adminAuth, async (req, res) => {
         date: h.date
       }));
 
+      const { calculateSchemeRankingScore } = require('../lib/presenter');
+      const ranking = calculateSchemeRankingScore(s);
+
       return {
         id: s._id,
         name: s.name,
@@ -117,6 +160,8 @@ router.get('/verification-report', adminAuth, async (req, res) => {
         changedRecently: s.changedRecently || false,
         differencesFound: historySummary.length > 0 ? historySummary : ['None'],
         sources: s.pageUsed ? [s.pageUsed] : (s.sourceUrl ? [s.sourceUrl] : ['Local / Secondary Sources']),
+        rankingScore: ranking.score,
+        whyThisOrder: ranking.why,
         linkStatus: (s.verifiedLinks || []).map(l => ({
           title: l.title,
           url: l.url,
@@ -134,6 +179,7 @@ router.get('/verification-report', adminAuth, async (req, res) => {
       timestamp: new Date().toISOString(),
       totalRecords: schemes.length,
       pendingCount: schemes.filter(s => s.reviewStatus === 'pending').length,
+      needsBetterRecipeCount: schemes.filter(s => s.verificationStatus === 'needs better recipe').length,
       allowlistedDomains: sourcesConfig.allowlistedDomains,
       excludedSourcesReport: sourcesConfig.excludedSourcesReport || [],
       records: recordsReport

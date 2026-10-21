@@ -126,12 +126,7 @@ class _ChatScreenState extends State<ChatScreen> {
           .map((m) => {'role': m.role, 'text': m.text})
           .toList(),
       'profile': profile.toJson(),
-      'eligibleSchemes': [
-        'Kalaignar Magalir Urimai Thogai',
-        'Old Age Pension (IGNOAPS / TN)',
-        'Destitute Widow Pension',
-        'CMCHIS'
-      ],
+      'eligibleSchemes': <String>[],
     };
 
     bool streamSucceeded = false;
@@ -462,8 +457,10 @@ class _ChatScreenState extends State<ChatScreen> {
                                 ? Theme.of(context).colorScheme.primary
                                 : (msg.isError
                                     ? Colors.red.shade50
-                                    : Theme.of(context).colorScheme.surfaceContainerHighest),
-                            border: msg.isError ? Border.all(color: Colors.red.shade300) : null,
+                                    : Theme.of(context).colorScheme.secondaryContainer),
+                            border: msg.isError
+                                ? Border.all(color: Colors.red.shade300)
+                                : Border.all(color: Theme.of(context).colorScheme.outlineVariant),
                             borderRadius: BorderRadius.only(
                               topLeft: const Radius.circular(16),
                               topRight: const Radius.circular(16),
@@ -495,7 +492,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                         ? Theme.of(context).colorScheme.onPrimary
                                         : (msg.isError
                                             ? Colors.red.shade900
-                                            : Theme.of(context).colorScheme.onSurfaceVariant),
+                                            : Theme.of(context).colorScheme.onSurface),
                                     fontSize: 14.5,
                                     height: 1.35,
                                   ),

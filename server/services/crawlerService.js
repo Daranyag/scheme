@@ -2,7 +2,6 @@ const crypto = require('crypto');
 const Scheme = require('../models/Scheme');
 const Source = require('../models/Source');
 const { fetchCleanPageText } = require('./fetcher');
-const { generateContentWithRetry } = require('../lib/gemini');
 const DetailAdapter = require('../scrapers/DetailAdapter');
 const CriteriaParser = require('../scrapers/CriteriaParser');
 const PlaywrightAdapter = require('../scrapers/PlaywrightAdapter');
@@ -25,6 +24,75 @@ function normalizeName(name) {
     .toLowerCase()
     .replace(/[^a-z0-9]/g, '')
     .trim();
+}
+
+/**
+ * Validates that a candidate is a genuine scheme:
+ * - Scheme name must not be a source name, portal name, service channel, menu item or department
+ * - Scheme name must appear in page title or heading
+ * - Must have at least one quoted fact
+ */
+function isValidSchemeCandidate(item, pageText, rawHtml, sourceName) {
+  if (!item || !item.name) return false;
+  const name = item.name.trim();
+  const lower = name.toLowerCase();
+
+  // Never create a scheme from a source name, portal name, service channel, menu item or department
+  const forbiddenPatterns = [
+    /\bportal\b/i,
+    /\bservice channel\b/i,
+    /\bapplication channel\b/i,
+    /\bmenu\b/i,
+    /\bdepartment\b/i,
+    /\bministry\b/i,
+    /\bdirectorate\b/i,
+    /\btaluk office\b/i,
+    /\bdistrict office\b/i,
+    /\be-sevai\b/i,
+    /\bchannel\b/i,
+    /^live scheme from/i
+  ];
+  if (forbiddenPatterns.some(p => p.test(lower))) return false;
+  if (sourceName && lower === sourceName.toLowerCase().trim()) return false;
+
+  // Must have scheme name in heading or title
+  let hasHeading = false;
+  if (rawHtml) {
+    try {
+      const cheerio = require('cheerio');
+      const $ = cheerio.load(rawHtml);
+      const headings = [
+        $('title').text(),
+        $('h1').text(),
+        $('h2').text(),
+        $('h3').text(),
+        $('h4').text()
+      ].join(' ').toLowerCase();
+      if (headings.includes(lower)) {
+        hasHeading = true;
+      } else {
+        const words = lower.split(/\s+/).filter(w => w.length > 3);
+        if (words.length > 0 && words.filter(w => headings.includes(w)).length >= Math.ceil(words.length * 0.7)) {
+          hasHeading = true;
+        }
+      }
+    } catch (_) {}
+  }
+  if (!hasHeading && pageText) {
+    const lines = pageText.split('\n').map(l => l.trim()).filter(Boolean);
+    const topLines = lines.slice(0, 15).join(' ').toLowerCase();
+    if (topLines.includes(lower)) {
+      hasHeading = true;
+    }
+  }
+  if (!hasHeading) return false;
+
+  // Must have at least one quoted fact
+  const facts = item.facts || item.quotedFacts || [];
+  const hasQuotedFact = Array.isArray(facts) && facts.some(f => f && typeof f === 'object' && f.quote && f.quote.trim().length > 0);
+  if (!hasQuotedFact) return false;
+
+  return true;
 }
 
 /**
@@ -141,7 +209,16 @@ async function runLiveCrawler() {
     }
 
     for (const item of extractedSchemes) {
-      if (!item.name || !item.benefit) continue;
+      if (!item.name) continue;
+
+      if (!isValidSchemeCandidate(item, pageText, fetchResult.rawHtml, page.name)) {
+        console.log(`[CrawlerService] Skipping candidate "${item.name}": failed title/heading match, portal/channel check, or lacked quoted facts.`);
+        continue;
+      }
+
+      const cleanBenefit = item.benefit && !item.benefit.toLowerCase().includes('benefit for ') && !item.benefit.toLowerCase().includes('government benefit extracted from')
+        ? item.benefit
+        : '';
 
       const normName = normalizeName(item.name);
       
@@ -155,13 +232,18 @@ async function runLiveCrawler() {
         ]
       });
 
+      // Validate source trust level
+      const isOfficialSource = page.url.includes('.gov.in') || page.url.includes('.nic.in') || page.url.includes('tnstc.in');
+      const reviewStatus = isOfficialSource ? 'pending' : 'rejected';
+      const rejectionReason = isOfficialSource ? null : 'no official government page';
+
       if (!schemeDoc) {
-        // Create new pending live record
+        // Create new live record (pending review or rejected if non-official)
         schemeDoc = new Scheme({
           name: item.name,
           nameTamil: item.nameTamil || '',
           category: item.category || 'General',
-          benefit: item.benefit,
+          benefit: cleanBenefit,
           rules: item.rules || {},
           eligibilityRules: item.eligibilityRules || {},
           unmappedCriteria: item.unmappedCriteria || [],
@@ -174,14 +256,16 @@ async function runLiveCrawler() {
           sourceUrl: page.url,
           rawSourceText: pageText.substring(0, 4000),
           origin: 'live',
+          createdBy: 'crawlerService',
           fetchedAt: new Date(),
           contentHash: currentHash,
-          reviewStatus: 'pending' // New live records start as pending
+          reviewStatus,
+          rejectionReason
         });
 
         await schemeDoc.save();
         results.newSchemesFound++;
-        console.log(`[CrawlerService] Discovered NEW scheme (pending review): "${item.name}"`);
+        console.log(`[CrawlerService] Discovered NEW scheme (status: ${reviewStatus}): "${item.name}"`);
       } else {
         // Update existing record if content hash changed
         if (schemeDoc.contentHash !== currentHash) {
@@ -248,7 +332,15 @@ async function runLiveCrawler() {
        }
        
        for (const item of subSchemes) {
-          if (!item.name || !item.benefit) continue;
+          if (!item.name) continue;
+          if (!isValidSchemeCandidate(item, subResult.text, subResult.rawHtml, page.name)) {
+             continue;
+          }
+
+          const cleanBenefit = item.benefit && !item.benefit.toLowerCase().includes('benefit for ') && !item.benefit.toLowerCase().includes('government benefit extracted from')
+             ? item.benefit
+             : '';
+
           let schemeDoc = await Scheme.findOne({
             $or: [
               { name: { $regex: new RegExp('^' + item.name.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&') + '$', 'i') } },
@@ -260,7 +352,7 @@ async function runLiveCrawler() {
           if (!schemeDoc) {
              schemeDoc = new Scheme({
                name: item.name, nameTamil: item.nameTamil || '', category: item.category || 'General',
-               benefit: item.benefit, rules: item.rules || {}, eligibilityRules: item.eligibilityRules || {},
+               benefit: cleanBenefit, rules: item.rules || {}, eligibilityRules: item.eligibilityRules || {},
                unmappedCriteria: item.unmappedCriteria || [], docs: item.requiredDocuments || [],
                requiredDocuments: item.requiredDocuments || [], steps: item.howToApply || [],
                howToApply: item.howToApply || [], officialLinks: item.officialLinks || [[page.name, subUrl]],
@@ -284,56 +376,12 @@ async function runLiveCrawler() {
 /**
  * Asks Gemini to extract schemes strictly adhering to allowed fields without guessing.
  */
-async function extractSchemesFromText(pageText, sourceUrl) {
+async function extractSchemesFromText(pageText, sourceUrl, sourceName) {
   try {
-    const prompt = `
-    Extract Tamil Nadu and Central government schemes & pensions from the fetched webpage text below.
-    CRITICAL RULES:
-    1. Do NOT guess or hallucinate any value not explicitly mentioned on the page. Leave unknown fields empty/null.
-    2. Format eligibilityRules ONLY using these 11 allowed field names:
-       age, gender, annualIncome, maritalStatus, disabilityPercent, destitute, headOfFamily, studiedInGovtSchool, inHigherEducation, student, farmer.
-    3. Put any other criteria in unmappedCriteria.
-
-    Webpage Text:
-    ${pageText.substring(0, 25000)}
-
-    Return JSON strictly in this format:
-    {
-      "schemes": [
-        {
-          "name": "Scheme Name in English",
-          "nameTamil": "Scheme Name in Tamil if present, else null",
-          "category": "Category name",
-          "benefit": "Benefit description",
-          "eligibilityRules": {
-            "age": { "$gte": 60 },
-            "gender": "F",
-            "annualIncome": { "$lt": 120000 },
-            "maritalStatus": "widowed",
-            "destitute": true
-          },
-          "unmappedCriteria": ["other criterion"],
-          "requiredDocuments": ["Aadhaar", "Passbook"],
-          "howToApply": ["Step 1", "Step 2"],
-          "officialLinks": [["Portal Name", "${sourceUrl}"]]
-        }
-      ]
-    }
-    `;
-
-    const responseObj = await generateContentWithRetry({
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      config: { responseMimeType: "application/json" }
-    });
-
-    const parsed = JSON.parse(responseObj.text);
-    return parsed.schemes || [];
+    // Stage A / Advanced Fetching v3: Fetch & Extract with zero AI - use deterministic extractor
+    return fallbackExtractor(pageText, sourceUrl, sourceName);
   } catch (err) {
-    if (err.message && err.message.includes('429')) {
-      console.warn(`[CrawlerService] AI quota exhausted during extraction for ${sourceUrl}`);
-      throw new Error('ai_quota_exhausted');
-    }
-    console.error(`[CrawlerService] Gemini extraction failed for ${sourceUrl}:`, err.message);
+    console.error(`[CrawlerService] Extraction failed for ${sourceUrl}:`, err.message);
     return [];
   }
 }
@@ -387,42 +435,6 @@ function fallbackExtractor(pageText, sourceUrl, sourceName) {
     });
   }
 
-  // Generic fallback if nothing specific matched
-  if (schemes.length === 0 && (textLower.includes('pension') || textLower.includes('scheme'))) {
-    const detailAdapter = new DetailAdapter(pageText, sourceUrl);
-    const sections = detailAdapter.extractSections();
-    const criteriaParser = new CriteriaParser();
-    
-    // Attempt basic NLP extraction for documents and steps
-    const docs = sections.requiredDocuments.length > 0 ? sections.requiredDocuments : [];
-    if (textLower.includes('aadhaar') && !docs.includes('Aadhaar Card')) docs.push('Aadhaar Card');
-    if ((textLower.includes('ration') || textLower.includes('smart card')) && !docs.includes('Ration/Smart Card')) docs.push('Ration/Smart Card');
-    if ((textLower.includes('bank') || textLower.includes('passbook')) && !docs.includes('Bank Passbook')) docs.push('Bank Passbook');
-    if (textLower.includes('photo') && !docs.includes('Passport Size Photo')) docs.push('Passport Size Photo');
-    
-    if (docs.length === 0) docs.push('Aadhaar Card', 'Ration Card'); // Default
-
-    const steps = sections.howToApply.length > 0 ? sections.howToApply : [];
-    if (textLower.includes('online') && !steps.includes('Apply online through the official portal')) steps.push('Apply online through the official portal');
-    if ((textLower.includes('e-sevai') || textLower.includes('csc')) && !steps.includes('Visit nearest e-Sevai centre')) steps.push('Visit nearest e-Sevai centre');
-    
-    if (steps.length === 0) steps.push('Apply through official portal or e-Sevai centre');
-
-    const rulesParsed = criteriaParser.parse(textLower);
-
-    schemes.push({
-      name: `Live Scheme from ${sourceName}`,
-      nameTamil: '',
-      category: 'Social Welfare',
-      benefit: sections.benefit || 'Government benefit extracted from official portal',
-      eligibilityRules: { ...sections.eligibilityRules, ...rulesParsed.rules },
-      unmappedCriteria: rulesParsed.unmapped || [],
-      requiredDocuments: docs,
-      howToApply: steps,
-      officialLinks: [[sourceName, sourceUrl]]
-    });
-  }
-  
   return schemes;
 }
 

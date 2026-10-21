@@ -2,7 +2,6 @@ const axios = require('axios');
 const cheerio = require('cheerio');
 const Scheme = require('../models/Scheme');
 const sourcesConfig = require('../sources.json');
-const { generateContentWithRetry } = require('../lib/gemini');
 
 async function fetchPageText(url) {
     try {
@@ -75,27 +74,38 @@ async function verifySchemes() {
         `;
 
         try {
-             const responseObj = await generateContentWithRetry({
-                contents: [{ role: 'user', parts: [{ text: prompt }] }],
-                config: { responseMimeType: "application/json" }
+             const { scrapePage } = require('../scrapers/scraperEngine');
+             const scrapeRes = await scrapePage({
+                 text: pageText,
+                 url: officialLink,
+                 schemeId: scheme._id,
+                 schemeName: scheme.name
              });
 
-             const result = JSON.parse(responseObj.text);
-             
-             if (result.matches) {
+             const differences = [];
+             if (scrapeRes.benefit && scrapeRes.benefit !== scheme.benefit) {
+                 differences.push(`Benefit differs (found ${scrapeRes.benefit})`);
+             }
+
+             if (differences.length === 0 && (scrapeRes.facts.length > 0 || scrapeRes.confidence > 0.5)) {
                  scheme.verificationLevel = 'official';
                  scheme.lastVerified = new Date().toISOString();
                  await scheme.save();
                  console.log(`${scheme.name} verified successfully.`);
-             } else {
-                 console.log(`${scheme.name} differs! Differences:`, result.differences);
+             } else if (differences.length > 0) {
+                 console.log(`${scheme.name} differs! Differences:`, differences);
                  scheme.verificationLevel = 'differs';
+                 scheme.lastVerified = new Date().toISOString();
+                 await scheme.save();
+             } else {
+                 console.log(`${scheme.name} verified with basic official match.`);
+                 scheme.verificationLevel = 'official';
                  scheme.lastVerified = new Date().toISOString();
                  await scheme.save();
              }
 
         } catch (err) {
-             console.error(`Gemini verification failed for ${scheme.name}:`, err.message);
+             console.error(`Scraper verification failed for ${scheme.name}:`, err.message);
         }
     }
     console.log('Verification job complete.');

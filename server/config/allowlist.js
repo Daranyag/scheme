@@ -26,11 +26,23 @@ try {
   ];
 }
 
+function isGovernmentDomain(hostname) {
+  if (!hostname || typeof hostname !== 'string') return false;
+  const h = hostname.toLowerCase();
+  return h.endsWith('.gov.in') || h.endsWith('.nic.in') || h === 'gov.in' || h === 'nic.in' || h.endsWith('.tn.gov.in') || h === 'cmchistn.com' || h.endsWith('.cmchistn.com');
+}
+
 function isAllowlistedUrl(urlString) {
   if (!urlString || typeof urlString !== 'string') return false;
   try {
     const parsed = new URL(urlString);
     const hostname = parsed.hostname.toLowerCase();
+
+    // Never add or allow a domain that is not a government domain (or the official CMCHIS portal)
+    if (!isGovernmentDomain(hostname)) {
+      return false;
+    }
+
     return allowedDomainsList.some(domain => 
       hostname === domain.toLowerCase() || hostname.endsWith('.' + domain.toLowerCase())
     );

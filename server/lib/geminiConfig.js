@@ -15,8 +15,9 @@ let initPromise = null;
 function getConfiguredNames() {
   const mainModel = process.env.GEMINI_MODEL || 'gemini-3.8-flash';
   const fallbackModel = process.env.GEMINI_FALLBACK_MODEL || 'gemini-3.5-flash-lite';
+  const backgroundModel = process.env.GEMINI_BACKGROUND_MODEL || fallbackModel;
   const groundingModel = process.env.GEMINI_GROUNDING_MODEL || mainModel;
-  return { mainModel, fallbackModel, groundingModel };
+  return { mainModel, fallbackModel, backgroundModel, groundingModel };
 }
 
 async function resolveModels(options = {}) {
@@ -35,18 +36,27 @@ async function resolveModels(options = {}) {
     let availableModels = [];
     let listSuccess = false;
 
-    if (((apiKey && apiKey.trim().length > 0) || options.customClient) && !options.skipNetwork) {
+    const isAiOff = (process.env.AI_MODE || 'auto').toLowerCase() === 'off' || (process.env.FETCH_ONLY || '').toLowerCase() === 'true';
+
+    if (!isAiOff && ((apiKey && apiKey.trim().length > 0) || options.customClient) && !options.skipNetwork) {
       try {
-        const ai = options.customClient || new GoogleGenAI({ apiKey: apiKey.trim() });
-        const res = await ai.models.list();
-        for await (const m of res) {
-          const actions = m.supportedActions || m.supportedGenerationMethods || [];
-          if (actions.includes('generateContent') || actions.includes('generateContentStream')) {
-            const cleanName = m.name.replace(/^models\//, '');
-            availableModels.push(cleanName);
+        const { callGemini } = require('./aiGate');
+        const gateRes = await callGemini({
+          purpose: 'background',
+          execute: async () => {
+            const ai = options.customClient || new GoogleGenAI({ apiKey: apiKey.trim() });
+            const res = await ai.models.list();
+            for await (const m of res) {
+              const actions = m.supportedActions || m.supportedGenerationMethods || [];
+              if (actions.includes('generateContent') || actions.includes('generateContentStream')) {
+                const cleanName = m.name.replace(/^models\//, '');
+                availableModels.push(cleanName);
+              }
+            }
+            return availableModels;
           }
-        }
-        if (availableModels.length > 0) {
+        });
+        if (gateRes.ok && availableModels.length > 0) {
           listSuccess = true;
         }
       } catch (err) {
@@ -56,6 +66,7 @@ async function resolveModels(options = {}) {
 
     let mainModel = configured.mainModel;
     let fallbackModel = configured.fallbackModel;
+    let backgroundModel = configured.backgroundModel;
     let groundingModel = configured.groundingModel;
     let isGroundingSupported = true;
 
@@ -76,6 +87,11 @@ async function resolveModels(options = {}) {
         fallbackModel = pickedFallback;
       }
 
+      // Check Background Model
+      if (!availableModels.includes(configured.backgroundModel)) {
+        backgroundModel = fallbackModel;
+      }
+
       // Check Grounding Model
       if (!availableModels.includes(configured.groundingModel)) {
         groundingModel = mainModel;
@@ -91,6 +107,7 @@ async function resolveModels(options = {}) {
     cachedConfig = {
       mainModel,
       fallbackModel,
+      backgroundModel,
       groundingModel,
       autoSelectedModel: mainModel,
       isGroundingSupported,
@@ -116,6 +133,7 @@ function getModels() {
   return {
     mainModel: configured.mainModel,
     fallbackModel: configured.fallbackModel,
+    backgroundModel: configured.backgroundModel,
     groundingModel: configured.groundingModel,
     autoSelectedModel: configured.mainModel,
     isGroundingSupported: !configured.groundingModel.includes('lite'),

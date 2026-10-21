@@ -126,10 +126,16 @@ class AuthProvider extends ChangeNotifier {
         _userDisplayName = data['user']?['displayName'] ?? displayName;
         _isAuthenticated = true;
         _isGuestMode = false;
-        _pendingGuestDataClaim = true;
+        _pendingGuestDataClaim = false;
 
         final prefs = await SharedPreferences.getInstance();
         await prefs.setBool(_prefGuestKey, true);
+
+        // Seamlessly claim and migrate guest data in background without prompting
+        try {
+          final deviceId = await ApiService.getOrCreateDeviceId();
+          await DioClient.dio.post('/api/auth/claim-guest-data', data: {'deviceId': deviceId});
+        } catch (_) {}
 
         // Push local profile to server immediately after signup
         final localProfileStr = prefs.getString('user_profile_data');
@@ -184,10 +190,16 @@ class AuthProvider extends ChangeNotifier {
         _userDisplayName = data['user']?['displayName'] ?? '';
         _isAuthenticated = true;
         _isGuestMode = false;
-        _pendingGuestDataClaim = true;
+        _pendingGuestDataClaim = false;
 
         final prefs = await SharedPreferences.getInstance();
         await prefs.setBool(_prefGuestKey, true);
+
+        // Seamlessly claim and migrate guest data in background without prompting
+        try {
+          final deviceId = await ApiService.getOrCreateDeviceId();
+          await DioClient.dio.post('/api/auth/claim-guest-data', data: {'deviceId': deviceId});
+        } catch (_) {}
 
         // Fetch and restore full profile on manual login
         final fullProfile = await ApiService.fetchFullProfile();

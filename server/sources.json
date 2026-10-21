@@ -36,6 +36,33 @@
   },
   "officialPages": [
     {
+      "name": "Tamil Nadu Schemes A to Z Directory",
+      "url": "https://www.tn.gov.in/scheme_wise.php",
+      "domain": "tn.gov.in",
+      "schemes": [
+        "Abolition of Bonded Labour System",
+        "Assistance for Education",
+        "Assistance for Marriage",
+        "Journalists Pension"
+      ]
+    },
+    {
+      "name": "Tamil Nadu Beneficiary Schemes Directory",
+      "url": "https://www.tn.gov.in/scheme_beneficiarywise.php",
+      "domain": "tn.gov.in",
+      "schemes": [
+        "Beneficiary Welfare Schemes"
+      ]
+    },
+    {
+      "name": "Free Travel for Women in Government Buses",
+      "url": "https://tnsocialwelfare.tn.gov.in/en/specilisationswomen-welfare/free-travel-for-women-in-government-buses",
+      "domain": "tnsocialwelfare.tn.gov.in",
+      "schemes": [
+        "Free travel for women in Government Buses"
+      ]
+    },
+    {
       "name": "Revenue Administration Pensions",
       "url": "https://cra.tn.gov.in/",
       "domain": "cra.tn.gov.in",
@@ -59,9 +86,7 @@
       "name": "e-Sevai Portal",
       "url": "https://www.tnesevai.tn.gov.in/",
       "domain": "tnesevai.tn.gov.in",
-      "schemes": [
-        "e-Sevai Application Channel"
-      ]
+      "schemes": []
     },
     {
       "name": "CMCHIS Official Portal",
@@ -160,6 +185,51 @@
       "domain": "makkalteadi.tn.gov.in",
       "schemes": [
         "Doorstep Healthcare Delivery"
+      ]
+    },
+    {
+      "name": "Adi Dravidar Welfare Department",
+      "url": "https://www.tnadw.tn.gov.in/",
+      "domain": "tnadw.tn.gov.in",
+      "category": "Scholarships (SC/ST/BC/MBC/Minority)",
+      "schemes": [
+        "Post-Matric Scholarship for SC/ST"
+      ]
+    },
+    {
+      "name": "Unorganised Workers Welfare Boards",
+      "url": "https://tnuwwb.tn.gov.in/",
+      "domain": "tnuwwb.tn.gov.in",
+      "category": "Workers' welfare boards",
+      "schemes": [
+        "Unorganised Workers Welfare Board Registration"
+      ]
+    },
+    {
+      "name": "Treasuries and Accounts (Karuvoolam)",
+      "url": "https://www.karuvoolam.tn.gov.in/web/tnta/pension",
+      "domain": "karuvoolam.tn.gov.in",
+      "category": "Pensions",
+      "schemes": [
+        "Old Age Pension (IGNOAPS / TN)"
+      ]
+    },
+    {
+      "name": "National Scholarship Portal",
+      "url": "https://scholarships.gov.in",
+      "domain": "scholarships.gov.in",
+      "category": "Central schemes",
+      "schemes": [
+        "Post-Matric Scholarship for SC/ST"
+      ]
+    },
+    {
+      "name": "PM-KISAN Portal",
+      "url": "https://pmkisan.gov.in",
+      "domain": "pmkisan.gov.in",
+      "category": "Central schemes",
+      "schemes": [
+        "PM-KISAN Samman Nidhi"
       ]
     }
   ],

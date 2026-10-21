@@ -4,7 +4,7 @@ import '../main.dart';
 import '../models/user_profile.dart';
 import '../providers/auth_provider.dart';
 import '../providers/language_provider.dart';
-import '../services/api_service.dart';
+import '../widgets/server_address_dialog.dart';
 import 'signup_screen.dart';
 import 'forgot_password_screen.dart';
 
@@ -90,6 +90,13 @@ class _LogInScreenState extends State<LogInScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(isTa ? 'உள்நுழைக' : 'Log In'),
+        actions: [
+          IconButton(
+            tooltip: 'Server Settings',
+            icon: const Icon(Icons.settings_ethernet),
+            onPressed: () => showServerAddressDialog(context),
+          ),
+        ],
       ),
       body: SafeArea(
         child: Center(
@@ -128,16 +135,36 @@ class _LogInScreenState extends State<LogInScreen> {
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(color: Colors.red.shade300),
                         ),
-                        child: Row(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Icon(Icons.error_outline, color: Colors.red),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                _errorMessage!,
-                                style: const TextStyle(color: Colors.red, fontSize: 13),
-                              ),
+                            Row(
+                              children: [
+                                const Icon(Icons.error_outline, color: Colors.red),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    _errorMessage!,
+                                    style: const TextStyle(color: Colors.red, fontSize: 13),
+                                  ),
+                                ),
+                              ],
                             ),
+                            if (_errorMessage!.contains('network') || _errorMessage!.contains('internet')) ...[
+                              const SizedBox(height: 8),
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: TextButton.icon(
+                                  onPressed: () => showServerAddressDialog(context),
+                                  icon: const Icon(Icons.settings, size: 16),
+                                  label: const Text('Change Server Address', style: TextStyle(fontSize: 12)),
+                                  style: TextButton.styleFrom(
+                                    visualDensity: VisualDensity.compact,
+                                    foregroundColor: Colors.red.shade900,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ],
                         ),
                       ),
@@ -238,7 +265,7 @@ class _LogInScreenState extends State<LogInScreen> {
                       height: 50,
                       child: ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF1E3A8A),
+                          backgroundColor: Theme.of(context).colorScheme.primary,
                           foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
@@ -281,8 +308,8 @@ class _LogInScreenState extends State<LogInScreen> {
                           },
                           child: Text(
                             isTa ? 'பதிவு செய்க' : 'Sign up',
-                            style: const TextStyle(
-                              color: Color(0xFF1E3A8A),
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.primary,
                               fontWeight: FontWeight.bold,
                             ),
                           ),

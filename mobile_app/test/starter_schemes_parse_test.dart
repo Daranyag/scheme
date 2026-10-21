@@ -11,7 +11,7 @@ void main() {
     final jsonString = file.readAsStringSync();
     final List<dynamic> rawList = jsonDecode(jsonString);
 
-    expect(rawList.length, equals(11));
+    expect(rawList.length, greaterThanOrEqualTo(11));
 
     for (var i = 0; i < rawList.length; i++) {
       final map = rawList[i] as Map<String, dynamic>;

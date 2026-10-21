@@ -5,7 +5,6 @@ const { fetchCleanPageText } = require('./fetcher');
 const { isAllowlistedUrl } = require('../config/allowlist');
 const { evaluateEligibilityExtended } = require('./ruleEngine');
 const sourcesConfig = require('../sources.json');
-const { generateContentWithRetry, runGroundedSearch } = require('../lib/gemini');
 
 /**
  * Worker polling loop to run pending discovery jobs with concurrency cap = 2.
@@ -82,90 +81,39 @@ async function runSingleJob(job) {
         const profile = job.profileSync || {};
         const profileDesc = `Age: ${profile.age || 'any'}, Gender: ${profile.gender || 'any'}, Income Band: ${profile.incomeBand || profile.income || 'any'}, Marital: ${profile.marital || 'any'}, Disability: ${profile.disability || 0}%, Destitute: ${profile.flags?.destitute || false}, FamHead: ${profile.flags?.famhead || false}, GovSchool: ${profile.flags?.govschool || false}, HigherEd: ${profile.flags?.highered || false}`;
 
-        // Step 1: Generate 5-8 queries with Gemini
+        // Stage A: Rule-based query discovery (Zero AI)
         let queryList = [];
-        try {
-            if (process.env.GEMINI_API_KEY) {
-                const queryPrompt = `Given this citizen profile in Tamil Nadu: ${profileDesc}. Generate 5 to 8 search queries to find official Tamil Nadu government welfare schemes or pensions they are eligible for. Return JSON array of strings only.`;
-                geminiCallCount++;
-                const response = await generateContentWithRetry({
-                    contents: [{ role: 'user', parts: [{ text: queryPrompt }] }],
-                    config: { responseMimeType: 'application/json' }
-                });
-                queryList = JSON.parse(response.text);
-            }
-        } catch (e) {
-            addLog('Gemini query generation fallback', { error: e.message });
+        if (profile.retiredFrom === 'Government' || profile.employmentSector === 'Government-Permanent') {
+            queryList.push('Tamil Nadu retired government employee pension health insurance scheme official');
+            queryList.push('TN government pensioners welfare benefits official cra.tn.gov.in');
         }
 
-        if (!Array.isArray(queryList) || queryList.length === 0) {
-            queryList = [];
-
-            if (profile.retiredFrom === 'Government' || profile.employmentSector === 'Government-Permanent') {
-                queryList.push('Tamil Nadu retired government employee pension health insurance scheme official');
-                queryList.push('TN government pensioners welfare benefits official cra.tn.gov.in');
-            }
-
-            if (profile.workStatus === 'Farmer' || profile.workStatus === 'Agricultural labourer') {
-                queryList.push('Tamil Nadu farmer subsidy agricultural welfare scheme official');
-                queryList.push('TN crop insurance PM KISAN farmer portal official tn.gov.in');
-            }
-
-            if (profile.role === 'School student' || profile.role === 'College student') {
-                queryList.push('Tamil Nadu student scholarship Pudhumai Penn Tamil Pudhalvan official');
-                queryList.push('TN higher education student welfare schemes portal.naanmudhalvan.tn.gov.in');
-            }
-
-            queryList.push(
-                'Tamil Nadu old age pension destitute widow eligibility',
-                'TN government social security pension scheme criteria',
-                'Tamil Nadu welfare schemes for women destitute',
-                'TN official pension schemes eligibility cra.tn.gov.in'
-            );
+        if (profile.workStatus === 'Farmer' || profile.workStatus === 'Agricultural labourer') {
+            queryList.push('Tamil Nadu farmer subsidy agricultural welfare scheme official');
+            queryList.push('TN crop insurance PM KISAN farmer portal official tn.gov.in');
         }
 
-        // Cap queries to 8
+        if (profile.role === 'School student' || profile.role === 'College student') {
+            queryList.push('Tamil Nadu student scholarship Pudhumai Penn Tamil Pudhalvan official');
+            queryList.push('TN higher education student welfare schemes portal.naanmudhalvan.tn.gov.in');
+        }
+
+        queryList.push(
+            'Tamil Nadu old age pension destitute widow eligibility',
+            'TN government social security pension scheme criteria',
+            'Tamil Nadu welfare schemes for women destitute',
+            'TN official pension schemes eligibility cra.tn.gov.in'
+        );
+
         queryList = queryList.slice(0, 8);
         queries.push(...queryList);
-        addLog('Generated search queries', { queries: queryList });
+        addLog('Generated rule-based search queries without AI', { queries: queryList });
 
-        // Step 2: Search grounding or fallback to sources.json
-        const candidateMap = new Map(); // url -> candidate Object
-
-        for (const query of queryList) {
-            let groundingWorked = false;
-
-            if (process.env.GEMINI_API_KEY && geminiCallCount < 40) {
-                try {
-                    geminiCallCount++;
-                    const res = await runGroundedSearch({
-                        prompt: `Search official Tamil Nadu government portals for: ${query}. List matching scheme names and official government page URLs.`
-                    });
-                    
-                    if (!res.skipped) {
-                        groundingWorked = true;
-                        const chunks = res.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
-                        for (const chunk of chunks) {
-                            if (chunk.web?.uri) {
-                                const candidateName = chunk.web.title || query;
-                                candidateMap.set(chunk.web.uri, { schemeName: candidateName, url: chunk.web.uri });
-                            }
-                        }
-                    }
-                } catch (err) {
-                    addLog('Google Search grounding unavailable for key, falling back to sources.json pages', { error: err.message });
-                }
-            } else if (!process.env.GEMINI_API_KEY) {
-                addLog('Google Search grounding unavailable for key, falling back to sources.json pages');
-            }
-
-            if (!groundingWorked) {
-                // Fallback to sources.json pages & starter schemes
-                for (const page of sourcesConfig.officialPages || []) {
-                    for (const schemeName of page.schemes || []) {
-                        candidateMap.set(page.url, { schemeName, url: page.url });
-                    }
-                }
+        // Step 2: Candidates from official sources.json pages
+        const candidateMap = new Map();
+        for (const page of sourcesConfig.officialPages || []) {
+            for (const schemeName of page.schemes || []) {
+                candidateMap.set(page.url, { schemeName, url: page.url });
             }
         }
 
@@ -182,6 +130,25 @@ async function runSingleJob(job) {
 
             const { schemeName, url } = candidate;
 
+            // Never create a scheme from a source name, portal name, service channel, menu item or department
+            const forbiddenPatterns = [
+                /\bportal\b/i,
+                /\bservice channel\b/i,
+                /\bapplication channel\b/i,
+                /\bmenu\b/i,
+                /\bdepartment\b/i,
+                /\bministry\b/i,
+                /\bdirectorate\b/i,
+                /\btaluk office\b/i,
+                /\bdistrict office\b/i,
+                /\be-sevai\b/i,
+                /\bchannel\b/i
+            ];
+            if (forbiddenPatterns.some(p => p.test(schemeName))) {
+                rejected.push({ schemeName, url, reason: 'Candidate is a portal name, service channel, department, or menu item' });
+                continue;
+            }
+
             // 1. Allowlist check
             if (!isAllowlistedUrl(url)) {
                 rejected.push({ schemeName, url, reason: 'Not on allowlisted official domain' });
@@ -196,75 +163,61 @@ async function runSingleJob(job) {
                 continue;
             }
 
-            // 3. Scheme name check
-            const textLower = fetchRes.text.toLowerCase();
-            const nameWords = schemeName.toLowerCase().split(/\s+/).filter(w => w.length > 3);
-            const containsName = textLower.includes(schemeName.toLowerCase()) || 
-                (nameWords.length > 0 && nameWords.some(w => textLower.includes(w)));
+            // 3. Scheme name in heading or title check
+            const cheerio = require('cheerio');
+            const $ = cheerio.load(fetchRes.rawHtml || '');
+            const titleAndHeadings = [
+                $('title').text(),
+                $('h1').text(),
+                $('h2').text(),
+                $('h3').text(),
+                $('h4').text()
+            ].join(' ').toLowerCase();
 
-            if (!containsName) {
-                rejected.push({ schemeName, url, reason: 'Fetched page text does not contain scheme name' });
+            const nameWords = schemeName.toLowerCase().split(/\s+/).filter(w => w.length > 3);
+            const hasNameInHeadingOrTitle = titleAndHeadings.includes(schemeName.toLowerCase()) ||
+                (nameWords.length > 0 && nameWords.filter(w => titleAndHeadings.includes(w)).length >= Math.ceil(nameWords.length * 0.7));
+
+            if (!hasNameInHeadingOrTitle) {
+                rejected.push({ schemeName, url, reason: 'Scheme name not found in page heading or title' });
                 continue;
             }
 
-            // 4. Extract details using Gemini
+            // 4. Extract details using the Scraper Engine (Zero AI)
             let extracted = null;
             let confidence = 'medium';
 
-            if (process.env.GEMINI_API_KEY && geminiCallCount < 40) {
-                try {
-                    geminiCallCount++;
-                    const extractPrompt = `Extract Tamil Nadu government scheme details from this official text for scheme "${schemeName}".
-Official Text:
-${fetchRes.text.substring(0, 15000)}
+            try {
+                const { scrapePage } = require('../scrapers/scraperEngine');
+                const scrapeRes = await scrapePage({
+                    html: fetchRes.rawHtml || '',
+                    text: fetchRes.text,
+                    url,
+                    schemeName
+                });
 
-Return JSON object:
-{
-  "name": "Scheme Name",
-  "nameTamil": "Tamil name if any",
-  "benefit": "Benefit summary",
-  "eligibilityRules": {
-    "age": { "$gte": 60 },
-    "gender": "F",
-    "marital": "widowed",
-    "destitute": true,
-    "income": { "$lt": 100000 }
-  },
-  "unmappedCriteria": ["any extra unmapped requirements"],
-  "requiredDocuments": ["document 1"],
-  "howToApply": ["step 1"],
-  "hasExplicitCriteriaOnPage": true
-}`;
-
-                    const res = await generateContentWithRetry({
-                        contents: [{ role: 'user', parts: [{ text: extractPrompt }] }],
-                        config: { responseMimeType: 'application/json' }
-                    });
-                    extracted = JSON.parse(res.text);
-                    if (extracted.hasExplicitCriteriaOnPage) {
-                        confidence = 'high';
-                    }
-                } catch (e) {
-                    addLog('Gemini detail extraction failed, using structural defaults', { error: e.message });
+                const quotedFacts = (scrapeRes.facts || []).filter(f => f.quote && f.quote.trim().length > 0);
+                if (quotedFacts.length > 0) {
+                    extracted = {
+                        name: schemeName,
+                        benefit: scrapeRes.benefit || '',
+                        eligibilityRules: scrapeRes.eligibilityRules || {},
+                        unmappedCriteria: scrapeRes.unmapped || [],
+                        requiredDocuments: scrapeRes.docs || [],
+                        howToApply: []
+                    };
+                    confidence = 'high';
+                } else {
+                    rejected.push({ schemeName, url, reason: 'No quoted facts found on official page' });
+                    continue;
                 }
+            } catch (e) {
+                addLog('Scraper engine extraction fallback', { error: e.message });
             }
 
             if (!extracted) {
-                // Fallback struct mapping if Gemini unavailable
-                extracted = {
-                    name: schemeName,
-                    benefit: `Financial pension or benefit under ${schemeName}`,
-                    eligibilityRules: {
-                        ...(profile.gender ? { gender: profile.gender } : {}),
-                        ...(profile.age ? { age: { $gte: Math.min(profile.age, 60) } } : {}),
-                        ...(profile.flags?.destitute ? { destitute: true } : {}),
-                        ...(profile.marital ? { marital: profile.marital } : {})
-                    },
-                    unmappedCriteria: [],
-                    requiredDocuments: ['Aadhaar card', 'Income certificate', 'Bank passbook'],
-                    howToApply: ['Apply at nearest e-Sevai centre or Taluk Office']
-                };
-                confidence = isAllowlistedUrl(url) ? 'high' : 'medium';
+                rejected.push({ schemeName, url, reason: 'Could not extract valid scheme with quoted facts' });
+                continue;
             }
 
             // Step 4: Run rule engine against user profile

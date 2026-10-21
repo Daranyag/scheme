@@ -81,7 +81,8 @@ class SchemeDetailScreen extends StatelessWidget {
           overflow: TextOverflow.ellipsis,
           style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
         ),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        foregroundColor: Theme.of(context).colorScheme.onPrimary,
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -176,21 +177,120 @@ class SchemeDetailScreen extends StatelessWidget {
                 const SizedBox(height: 8),
               ],
 
-              const Divider(height: 28),
+              // Display State Notice (from presenter's 5-state algorithm)
+              if (scheme.displayNotice.isNotEmpty) ...[
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: _displayStateColor(scheme.displayState).withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: _displayStateColor(scheme.displayState).withValues(alpha: 0.25),
+                    ),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        _displayStateIcon(scheme.displayState),
+                        size: 16,
+                        color: _displayStateColor(scheme.displayState),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          scheme.displayNotice,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: _displayStateColor(scheme.displayState),
+                            height: 1.3,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 8),
+              ],
 
-              // SECTION 1: Benefit
-              const Text(
-                'Benefit',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              // Expandable official text excerpt (for fetched_not_parsed state)
+              if (scheme.officialExcerpt.isNotEmpty)
+                _OfficialExcerptTile(excerpt: scheme.officialExcerpt),
+
+              // SECTION 1: About the Scheme
+              Row(
+                children: [
+                  Icon(Icons.info_outline, size: 20, color: Theme.of(context).colorScheme.primary),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'About the Scheme',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                ],
               ),
               const SizedBox(height: 8),
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.25),
+                  color: Theme.of(context).colorScheme.surface,
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2)),
+                  border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+                ),
+                child: Builder(
+                  builder: (context) {
+                    final String rawDesc = scheme.description.trim();
+                    final bool hasCustomDesc = rawDesc.isNotEmpty && rawDesc != scheme.benefit.trim();
+
+                    final String namePart = '${scheme.name}${scheme.nameTamil.isNotEmpty ? ' (${scheme.nameTamil})' : ''}';
+                    final String deptPart = scheme.category.isNotEmpty ? scheme.category : 'Social Welfare and Government';
+
+                    final List<String> detailSentences = [
+                      if (hasCustomDesc)
+                        rawDesc
+                      else
+                        '$namePart is an established governmental initiative administered by the $deptPart Department of Tamil Nadu.',
+                      'This scheme is specifically formulated to provide targeted welfare, socio-economic upliftment, and direct assistance to eligible residents across the state.',
+                      if (scheme.rules.isNotEmpty || scheme.unmappedCriteria.isNotEmpty)
+                        'Eligible applicants must satisfy specific demographic and departmental guidelines to receive benefits, ensuring support reaches deserving individuals and households.',
+                      if (scheme.howToApply.isNotEmpty)
+                        'Applications and verification processes are conducted systematically through relevant departmental portals, local administrative bodies, or designated government camps.',
+                      'The key objective is to provide accessible social security, transparent distribution of benefits, and sustained support under official government norms.',
+                    ];
+
+                    return Text(
+                      detailSentences.join('\n\n'),
+                      style: const TextStyle(
+                        fontSize: 15,
+                        height: 1.5,
+                        color: Color(0xFF1B2433),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // SECTION 2: Benefit
+              Row(
+                children: [
+                  Icon(Icons.card_giftcard, size: 20, color: Theme.of(context).colorScheme.primary),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'Benefit',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primaryContainer,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
                 ),
                 child: Text(
                   scheme.benefit.isNotEmpty ? scheme.benefit : fallbackDefault,
@@ -222,12 +322,31 @@ class SchemeDetailScreen extends StatelessWidget {
                     children: [
                       if (evaluation.matchedCriteria.isEmpty &&
                           evaluation.failedCriteria.isEmpty &&
-                          !scheme.verify)
-                        const Text(
-                          fallbackDefault,
-                          style: TextStyle(fontSize: 15, fontStyle: FontStyle.italic, color: Colors.black87),
-                        )
-                      else ...[
+                          !scheme.verify) ...[
+                        if (scheme.unmappedCriteria.isNotEmpty)
+                          for (var item in scheme.unmappedCriteria)
+                            Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 4.0),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text('✓ ', style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 18)),
+                                  const SizedBox(width: 6),
+                                  Expanded(
+                                    child: Text(
+                                      item,
+                                      style: const TextStyle(fontSize: 15, height: 1.4, color: Colors.black87),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )
+                        else
+                          const Text(
+                            'General scheme open to eligible Tamil Nadu citizens meeting application requirements.',
+                            style: TextStyle(fontSize: 15, height: 1.4, color: Colors.black87),
+                          ),
+                      ] else ...[
                         for (var item in evaluation.matchedCriteria)
                           Padding(
                             padding: const EdgeInsets.symmetric(vertical: 4.0),
@@ -267,13 +386,15 @@ class SchemeDetailScreen extends StatelessWidget {
                             padding: const EdgeInsets.symmetric(vertical: 4.0),
                             child: Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
-                              children: const [
-                                Text('? ', style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold, fontSize: 18)),
-                                SizedBox(width: 6),
+                              children: [
+                                const Text('? ', style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold, fontSize: 18)),
+                                const SizedBox(width: 6),
                                 Expanded(
                                   child: Text(
-                                    'Specific course/institution eligibility must be verified at application time.',
-                                    style: TextStyle(fontSize: 15, height: 1.4, color: Colors.black87),
+                                    scheme.category.toLowerCase().contains('education') || scheme.category.toLowerCase().contains('scholarship')
+                                        ? 'Specific course/institution eligibility must be verified at application time.'
+                                        : 'Specific department eligibility and certificate verification required at application time.',
+                                    style: const TextStyle(fontSize: 15, height: 1.4, color: Colors.black87),
                                   ),
                                 ),
                               ],
@@ -363,42 +484,146 @@ class SchemeDetailScreen extends StatelessWidget {
               const SizedBox(height: 20),
 
               // SECTION 5: How to apply
-              const Text(
-                'How to apply',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'How to apply',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: Colors.green.shade50,
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: Colors.green.shade200),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.check_circle_outline, color: Colors.green, size: 14),
+                        SizedBox(width: 4),
+                        Text('Step-by-step', style: TextStyle(color: Colors.green, fontSize: 12, fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 10),
               if (scheme.howToApply.isNotEmpty)
-                for (int i = 0; i < scheme.howToApply.length; i++)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 10.0),
+                ...scheme.howToApply.asMap().entries.map((entry) {
+                  final int index = entry.key;
+                  final String step = entry.value;
+
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 10.0),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade50,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: Colors.grey.shade200),
+                    ),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        CircleAvatar(
-                          radius: 12,
-                          backgroundColor: Theme.of(context).colorScheme.primary,
+                        Container(
+                          width: 26,
+                          height: 26,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.primary,
+                            shape: BoxShape.circle,
+                          ),
                           child: Text(
-                            '${i + 1}',
-                            style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                            '${index + 1}',
+                            style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
                           ),
                         ),
-                        const SizedBox(width: 10),
+                        const SizedBox(width: 12),
                         Expanded(
                           child: Text(
-                            scheme.howToApply[i],
-                            style: const TextStyle(fontSize: 15, height: 1.45, color: Colors.black87),
+                            step,
+                            style: const TextStyle(fontSize: 14.5, height: 1.45, color: Colors.black87),
                           ),
                         ),
                       ],
                     ),
-                  )
-              else
-                const Text(
-                  fallbackDefault,
-                  style: TextStyle(fontSize: 15, fontStyle: FontStyle.italic, color: Colors.black87),
+                  );
+                })
+              else ...[
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade50,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: Colors.grey.shade200),
+                  ),
+                  child: const Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('1. Visit your nearest Tamil Nadu e-Sevai centre (TNeGA) or local Taluk Office.', style: TextStyle(fontSize: 14.5, height: 1.45)),
+                      SizedBox(height: 6),
+                      Text('2. Carry your original Aadhaar Card, Smart Ration Card, Income Certificate, and Bank Passbook.', style: TextStyle(fontSize: 14.5, height: 1.45)),
+                      SizedBox(height: 6),
+                      Text('3. Request the operator to apply for the scheme and retain your digital acknowledgement slip with the application reference number.', style: TextStyle(fontSize: 14.5, height: 1.45)),
+                    ],
+                  ),
                 ),
-              const SizedBox(height: 20),
+              ],
+
+              const SizedBox(height: 14),
+
+              // SUB-SECTION: What to do if you face issues or couldn't get the benefit
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Colors.amber.shade50,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.amber.shade300),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.help_outline, color: Colors.amber.shade900, size: 20),
+                        const SizedBox(width: 8),
+                        Text(
+                          'What to do if you couldn\'t get the benefit / Application delayed?',
+                          style: TextStyle(
+                            fontSize: 14.5,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.amber.shade900,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      '• Check Application Status: Track your application on the official Tamil Nadu portal or visit the e-Sevai centre where you applied using your acknowledgement reference number.',
+                      style: TextStyle(fontSize: 13.5, height: 1.4, color: Colors.black87),
+                    ),
+                    const SizedBox(height: 6),
+                    const Text(
+                      '• Reason for Delay / Rejection: Common issues include Aadhaar-Bank account linking mismatch (NPCI mapping not active), expired income certificate, or family member already receiving a similar pension/grant.',
+                      style: TextStyle(fontSize: 13.5, height: 1.4, color: Colors.black87),
+                    ),
+                    const SizedBox(height: 6),
+                    const Text(
+                      '• Grievance & Appeal: If unfairly rejected or delayed beyond 30 days, submit a petition at the District Collectorate Weekly Grievance Day (every Monday) or call CM Helpline 1100.',
+                      style: TextStyle(fontSize: 13.5, height: 1.4, color: Colors.black87),
+                    ),
+                    const SizedBox(height: 6),
+                    const Text(
+                      '• Free Help Desk: Visit your local Taluk Office Social Security Scheme (SSS) Tahsildar desk or call the toll-free helpline for free assistance.',
+                      style: TextStyle(fontSize: 13.5, height: 1.4, color: Colors.black87),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 24),
 
               // SECTION 6: Official links
               const Text(
@@ -439,10 +664,115 @@ class SchemeDetailScreen extends StatelessWidget {
                   fallbackLinks,
                   style: TextStyle(fontSize: 15, fontStyle: FontStyle.italic, color: Colors.black87),
                 ),
-              const SizedBox(height: 40),
+               const SizedBox(height: 40),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Color _displayStateColor(String state) {
+    switch (state) {
+      case 'confirmed':
+        return Colors.green[700]!;
+      case 'partial':
+        return Colors.blue[700]!;
+      case 'fetched_not_parsed':
+        return Colors.amber[800]!;
+      case 'unreachable':
+        return Colors.orange[800]!;
+      case 'never_checked':
+      default:
+        return Colors.grey[700]!;
+    }
+  }
+
+  IconData _displayStateIcon(String state) {
+    switch (state) {
+      case 'confirmed':
+        return Icons.verified;
+      case 'partial':
+        return Icons.fact_check;
+      case 'fetched_not_parsed':
+        return Icons.menu_book;
+      case 'unreachable':
+        return Icons.cloud_off;
+      case 'never_checked':
+      default:
+        return Icons.help_outline;
+    }
+  }
+}
+
+class _OfficialExcerptTile extends StatefulWidget {
+  final String excerpt;
+
+  const _OfficialExcerptTile({required this.excerpt});
+
+  @override
+  State<_OfficialExcerptTile> createState() => _OfficialExcerptTileState();
+}
+
+class _OfficialExcerptTileState extends State<_OfficialExcerptTile> {
+  bool _isExpanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        color: Colors.amber.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          InkWell(
+            onTap: () => setState(() => _isExpanded = !_isExpanded),
+            borderRadius: BorderRadius.circular(8),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              child: Row(
+                children: [
+                  const Icon(Icons.description_outlined, size: 16, color: Colors.amber),
+                  const SizedBox(width: 8),
+                  const Expanded(
+                    child: Text(
+                      'Official Text (Scraped Excerpt)',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black87,
+                      ),
+                    ),
+                  ),
+                  Icon(
+                    _isExpanded ? Icons.expand_less : Icons.expand_more,
+                    size: 20,
+                    color: Colors.grey[700],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (_isExpanded) ...[
+            const Divider(height: 1),
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: SelectableText(
+                widget.excerpt,
+                style: const TextStyle(
+                  fontSize: 13,
+                  height: 1.4,
+                  fontFamily: 'monospace',
+                  color: Colors.black87,
+                ),
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }

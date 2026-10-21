@@ -33,19 +33,24 @@ function releaseGlobalSlot() {
 const domainLocks = new Map();
 const lastDomainRequestTime = new Map();
 const domainConsecutiveFailures = new Map();
+const domainConsecutiveTimeouts = new Map();
 const domainCircuitOpenUntil = new Map();
+const domainStatus = new Map();
+const domainSkippedLogged = new Set();
 const domainWorkingVariant = new Map(); // domain -> working url variant
 
 async function acquireDomainLock(domain) {
+  const pollInterval = process.env.NODE_ENV === 'test' ? 5 : 100;
   while (domainLocks.get(domain)) {
-    await new Promise(r => setTimeout(r, 100));
+    await new Promise(r => setTimeout(r, pollInterval));
   }
   domainLocks.set(domain, true);
 
+  const minInterval = process.env.NODE_ENV === 'test' ? 10 : 3000;
   const lastTime = lastDomainRequestTime.get(domain) || 0;
   const elapsed = Date.now() - lastTime;
-  if (elapsed < 3000) {
-    await new Promise(r => setTimeout(r, 3000 - elapsed));
+  if (elapsed < minInterval) {
+    await new Promise(r => setTimeout(r, minInterval - elapsed));
   }
 }
 
@@ -262,6 +267,10 @@ async function fetchPage(url, options = {}) {
   // 2. Circuit Breaker Check
   const openUntil = domainCircuitOpenUntil.get(domain) || 0;
   if (Date.now() < openUntil) {
+    if (!domainSkippedLogged.has(domain)) {
+      console.log(`[Fetcher] Domain ${domain} skipped (circuit breaker: marked slow after 2 consecutive timeouts).`);
+      domainSkippedLogged.add(domain);
+    }
     return {
       ok: false,
       url,
@@ -271,8 +280,8 @@ async function fetchPage(url, options = {}) {
       text: null,
       bytes: 0,
       durationMs: Date.now() - startTime,
-      errorType: 'connection_refused',
-      errorMessage: 'Circuit breaker open for domain (5 consecutive failures)',
+      errorType: 'timeout',
+      errorMessage: `Domain ${domain} marked slow and skipped (circuit breaker active)`,
       fetchedAt,
       certInfo: null,
       neededHeadless: false
@@ -322,6 +331,7 @@ async function fetchPage(url, options = {}) {
       if (fetchAttempt.ok) {
         domainWorkingVariant.set(domain, currentCandidate);
         domainConsecutiveFailures.set(domain, 0);
+        domainConsecutiveTimeouts.set(domain, 0);
         return {
           ...fetchAttempt,
           durationMs: Date.now() - startTime,
@@ -344,9 +354,18 @@ async function fetchPage(url, options = {}) {
   // Record failure for circuit breaker
   const failures = (domainConsecutiveFailures.get(domain) || 0) + 1;
   domainConsecutiveFailures.set(domain, failures);
-  if (failures >= 5) {
-    console.log(`[Fetcher] Circuit breaker OPEN for domain ${domain} (5 consecutive failures). Pausing domain for 6 hours.`);
-    domainCircuitOpenUntil.set(domain, Date.now() + 6 * 60 * 60 * 1000);
+
+  if (lastResult && lastResult.errorType === 'timeout') {
+    const timeouts = (domainConsecutiveTimeouts.get(domain) || 0) + 1;
+    domainConsecutiveTimeouts.set(domain, timeouts);
+    if (timeouts >= 2) {
+      domainCircuitOpenUntil.set(domain, Date.now() + 6 * 60 * 60 * 1000);
+      domainStatus.set(domain, 'slow');
+      if (!domainSkippedLogged.has(domain)) {
+        console.log(`[Fetcher] Domain ${domain} skipped (circuit breaker: marked slow after 2 consecutive timeouts).`);
+        domainSkippedLogged.add(domain);
+      }
+    }
   }
 
   return {
@@ -367,13 +386,14 @@ async function fetchPage(url, options = {}) {
 }
 
 async function executeFetchWithRetries(targetUrl, domain, options) {
-  const retryDelays = options.customDelays || [3000, 9000, 27000];
-  const maxAttempts = 3;
+  const retryDelays = options.customDelays || [2000, 5000];
+  const maxRetries = options.maxRetries !== undefined ? options.maxRetries : 2; // at most 2 retries (up to 3 attempts total: 0, 1, 2)
+  const timeoutMs = options.timeoutMs || 20000;
 
-  for (let attempt = 0; attempt <= maxAttempts; attempt++) {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       const response = await axios.get(targetUrl, {
-        timeout: 25000,
+        timeout: timeoutMs, // 20 second timeout default
         maxContentLength: 15 * 1024 * 1024, // 15 MB
         maxRedirects: 5,
         headers: {
@@ -417,6 +437,7 @@ async function executeFetchWithRetries(targetUrl, domain, options) {
 
       // Process 2xx Content
       let cleanText = '';
+      let rawHtml = '';
       let extractedLinks = [];
       let neededHeadless = false;
 
@@ -432,7 +453,7 @@ async function executeFetchWithRetries(targetUrl, domain, options) {
           return { ok: false, finalUrl, status, contentType, errorType: 'parse_error', errorMessage: pdfErr.message, links: [] };
         }
       } else {
-        const rawHtml = typeof response.data === 'string' ? response.data : response.data.toString('utf8');
+        rawHtml = typeof response.data === 'string' ? response.data : response.data.toString('utf8');
         const $ = cheerio.load(rawHtml);
         
         $('a[href]').each((_, el) => {
@@ -479,6 +500,7 @@ async function executeFetchWithRetries(targetUrl, domain, options) {
         status,
         contentType,
         text: cleanText,
+        rawHtml: rawHtml || '',
         bytes,
         errorType: null,
         errorMessage: null,
@@ -504,12 +526,13 @@ async function executeFetchWithRetries(targetUrl, domain, options) {
       }
 
       // Retryable errors: timeout, connection_refused, dns
-      if (['timeout', 'connection_refused', 'dns'].includes(errorType) && attempt < maxAttempts) {
-        const delay = retryDelays[attempt] + Math.floor(Math.random() * 1000);
+      if (['timeout', 'connection_refused', 'dns'].includes(errorType) && attempt < maxRetries) {
+        const delay = (retryDelays[attempt] || 2000) + Math.floor(Math.random() * 500);
         console.log(`[Fetcher] ${errorType} on ${targetUrl}. Retrying in ${delay}ms (attempt ${attempt + 1})...`);
         await new Promise(r => setTimeout(r, delay));
         continue;
       }
+
 
       return {
         ok: false,
@@ -526,20 +549,100 @@ async function executeFetchWithRetries(targetUrl, domain, options) {
   return { ok: false, finalUrl: targetUrl, status: null, contentType: '', errorType: 'timeout', errorMessage: 'Max retries exceeded' };
 }
 
+// Playwright Browser Management (Shared instance, capped pages per run)
+let sharedBrowser = null;
+let pagesRenderedCount = 0;
+const MAX_PAGES_RENDERED_PER_RUN = 5;
+
 async function tryPlaywrightHeadless(url) {
+  if (pagesRenderedCount >= MAX_PAGES_RENDERED_PER_RUN) {
+    return { success: false, reason: 'Page render budget cap reached' };
+  }
+
+  // 1. Try Playwright headless browser
   try {
     const playwright = require('playwright');
-    const browser = await playwright.chromium.launch({ headless: true });
-    const page = await browser.newPage();
+    if (!sharedBrowser) {
+      sharedBrowser = await playwright.chromium.launch({ headless: true });
+    }
+    const page = await sharedBrowser.newPage();
     await page.goto(url, { waitUntil: 'networkidle', timeout: 30000 });
     const content = await page.evaluate(() => document.body.innerText);
-    await browser.close();
+    await page.close();
+    pagesRenderedCount++;
 
     const clean = sanitizeTextAndPromptSafety(content);
-    return { success: clean.length >= 50, text: clean };
-  } catch (e) {
-    return { success: false, reason: e.message };
+    if (clean.length >= 50) {
+      return { success: true, text: clean, method: 'playwright' };
+    }
+  } catch (pwErr) {
+    // Playwright not installed or failed, proceed to embedded JSON & sitemap fallbacks
   }
+
+  // 2. Embedded JSON (__NEXT_DATA__, script tags, noscript)
+  try {
+    const res = await axios.get(url, { timeout: 10000, validateStatus: () => true });
+    if (res.data && typeof res.data === 'string') {
+      const $ = cheerio.load(res.data);
+      const nextData = $('script#__NEXT_DATA__').html();
+      if (nextData) {
+        try {
+          const parsed = JSON.parse(nextData);
+          const jsonText = JSON.stringify(parsed);
+          if (jsonText.length > 100) {
+            return { success: true, text: sanitizeTextAndPromptSafety(jsonText), method: 'embedded_json' };
+          }
+        } catch (je) {}
+      }
+      
+      const noscript = $('noscript').text();
+      if (noscript && noscript.length > 100) {
+        return { success: true, text: sanitizeTextAndPromptSafety(noscript), method: 'noscript' };
+      }
+    }
+  } catch (e) {}
+
+  // 3. Fallback to official MyScheme portal for CMCHIS if terms allow
+  if (url.includes('cmchis')) {
+    try {
+      const mySchemeRes = await axios.get('https://www.myscheme.gov.in/schemes/cmchis', { timeout: 10000, validateStatus: () => true });
+      if (mySchemeRes.status === 200 && mySchemeRes.data) {
+        const $ = cheerio.load(mySchemeRes.data);
+        $('script, style, nav, footer').remove();
+        const bodyText = sanitizeTextAndPromptSafety($('body').text() || '');
+        if (bodyText.length > 200) {
+          return {
+            success: true,
+            text: bodyText,
+            method: 'myscheme_fallback'
+          };
+        }
+      }
+    } catch (e) {}
+  }
+
+  return { success: false, reason: 'All headless rendering and JSON fallback methods exhausted' };
+}
+
+function resetCircuitBreakerForTesting() {
+  domainConsecutiveFailures.clear();
+  domainConsecutiveTimeouts.clear();
+  domainCircuitOpenUntil.clear();
+  domainStatus.clear();
+  domainSkippedLogged.clear();
+  domainLocks.clear();
+  lastDomainRequestTime.clear();
+  domainWorkingVariant.clear();
+}
+
+function getDomainStatus(domain) {
+  const norm = (domain || '').toLowerCase();
+  return {
+    status: domainStatus.get(norm) || 'normal',
+    consecutiveTimeouts: domainConsecutiveTimeouts.get(norm) || 0,
+    openUntil: domainCircuitOpenUntil.get(norm) || 0,
+    isCircuitOpen: (domainCircuitOpenUntil.get(norm) || 0) > Date.now()
+  };
 }
 
 module.exports = {
@@ -547,5 +650,7 @@ module.exports = {
   getAlternativeUrls,
   sanitizeTextAndPromptSafety,
   classifyError,
-  probeTlsCert
+  probeTlsCert,
+  resetCircuitBreakerForTesting,
+  getDomainStatus
 };

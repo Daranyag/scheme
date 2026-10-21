@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>Department of Employment and Training</title>
+    <!-- Stylesheets -->
+    <link href="css/bootstrap.css" rel="stylesheet">
+    <link href="css/style.css" rel="stylesheet">
+    <!-- Responsive File -->
+    <link href="css/responsive.css" rel="stylesheet">
+
+    <link rel="shortcut icon" href="images/favicon.png" type="image/x-icon">
+    <link rel="icon" href="images/favicon.png" type="image/x-icon">
+
+    <!-- Responsive Settings -->
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+    <!--[if lt IE 9]><script src="https://cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv.js"></script><![endif]-->
+    <!--[if lt IE 9]><script src="js/respond.js"></script><![endif]-->
+
+    <style>
+        .flag_ind {
+            position: fixed !important;
+            left: 0px;
+            bottom: 180px;
+            z-index: 999;
+            filter: drop-shadow(0px 3px 6px rgba(0, 0, 0, 0.35));
+            border-radius: 0px 10px 10px 0px;
+            width: 215px;
+        }
+
+        /* --- Corporate Office Section Styles --- */
+        .corporate-office-section {
+            background-color: #0000FF; /* Solid blue color as per image */
+            background-color: #fff0db;
+	    color: #ffffff;
+            padding: 35px 20px;
+            font-family: Arial, sans-serif;
+	    margin-bottom: 30px;
+        }
+
+        .corporate-office-section h2.corp-title {
+            color: #000000;
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 25px;
+        }
+
+        .corp-info-block {
+            display: flex;
+            align-items: flex-start;
+            gap: 15px;
+            margin-bottom: 12px;
+        }
+
+        .corp-icon {
+            width: 32px;
+            height: 32px;
+            flex-shrink: 0;
+        }
+
+        .corp-details {
+            font-size: 15px;
+            line-height: 1.6;
+            color: #000000;
+        }
+
+        .corp-details a {
+            color: #49d10d;
+            text-decoration: none;
+        }
+
+        .corp-details a:hover {
+            text-decoration: underline;
+        }
+
+        .visitor-counter {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 15px;
+        }
+
+        .counter-digits-container {
+            display: inline-flex;
+            border: 2px solid #49d10d;
+            border-radius: 20px;
+            padding: 2px 8px;
+            background: transparent;
+        }
+
+        .counter-digit {
+            color: #49d10d;
+            font-weight: bold;
+            font-size: 18px;
+            padding: 0 4px;
+            border-right: 1px solid rgba(255, 255, 255, 0.4);
+        }
+
+        .counter-digit:last-child {
+            border-right: none;
+        }
+    </style>
+</head>
+
+<body onload="co_signup_disclaimer()">
+    <!--<div class="flag_ind bg-white p-3">
+        <img src="images/logo75years_new.jpeg">
+    </div>-->
+
+
+    <div class="page-wrapper">
+        <div class="page-wrap" id="lang-div" lang="en" dir="ltr">
+            <!-- Preloader -->
+            <div class="preloader">
+                <div class="icon"></div>
+            </div>
+
+            <!-- Main Header -->
+            <div w3-include-html="header_eng.html"></div>
+
+            <!-- End Main Header -->
+
+            <!-- Banner Section -->
+            <section class="banner-section banner-one">
+
+                <div id="carouselExampleIndicators" class="carousel slide" data-ride="carousel">
+                    <ol class="carousel-indicators">
+                        <li data-target="#carouselExampleIndicators" data-slide-to="0" class="active"></li>
+                        <li data-target="#carouselExampleIndicators" data-slide-to="1"></li>
+                        <li data-target="#carouselExampleIndicators" data-slide-to="2"></li>
+                        <li data-target="#carouselExampleIndicators" data-slide-to="3"></li>
+                        <li data-target="#carouselExampleIndicators" data-slide-to="4"></li>
+                        <li data-target="#carouselExampleIndicators" data-slide-to="5"></li>
+                    </ol>
+                    <div class="carousel-inner">
+                        <div class="carousel-item active">
+                            <a href="https://tnvelaivaaippu.gov.in/Empower/" target="_blank"><img class="d-block w-100" src="images/main-slider/00.jpg" alt="First slide"></a>
+                        </div>
+                        <div class="carousel-item">
+                            <a href="https://tnvelaivaaippu.gov.in/Empower/" target="_blank"><img class="d-block w-100" src="images/main-slider/5.jpg" alt="Five slide"></a>
+                        </div>
+                        <div class="carousel-item">
+                            <a href="https://www.tnprivatejobs.tn.gov.in" target="_blank"><img class="d-block w-100" src="images/main-slider/1.jpg" alt="First slide"></a>
+                        </div>
+                        <div class="carousel-item">
+                            <a href="https://tamilnaducareerservices.tn.gov.in" target="_blank"><img class="d-block w-100" src="images/main-slider/2.jpg" alt="Second slide"></a>
+                        </div>
+			<div class="carousel-item">
+                            <a href="https://www.skilltraining.tn.gov.in" target="_blank"><img class="d-block w-100"
+                                    src="images/main-slider/Skill_Training_English.png" alt="Third slide"></a>
+                        </div>
+                        <div class="carousel-item">
+                            <a href="https://www.omcmanpower.tn.gov.in" target="_blank"><img class="d-block w-100"
+                                    src="images/main-slider/Overseas_Job_English.png" alt="Fourth slide"></a>
+                        </div>
+                    </div>
+                    <a class="carousel-control-prev" href="#carouselExampleIndicators" role="button" data-slide="prev">
+                        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                        <span class="sr-only">Previous</span>
+                    </a>
+                    <a class="carousel-control-next" href="#carouselExampleIndicators" role="button" data-slide="next">
+                        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                        <span class="sr-only">Next</span>
+                    </a>
+                </div>
+            </section>
+
+            <!--Marquee Section-->
+            <section class="testimonials-section">
+                <div class="image-layer" style="background-image: url(images/background/image-2.jpg);"></div>
+                <div class="auto-container"><br />
+                    <div class="sec-title with-separator centered">
+                        <h2>Latest News</h2>
+                        <div class="separator"><span class="cir c-1"></span><span class="cir c-2"></span><span class="cir c-3"></span></div>
+                    </div>
+                    <div class="testimonial-carousel owl-theme owl-carousel">
+                        <div class="slide-item">
+                            <div class="inner">
+                                <div class="info clearfix">
+                                    <div class="name">Employers & Job seekers</div>
+                                    <div class="designation">Private Jobs Portal</div>
+                                </div>
+                                <div class="text"><a href="https://www.tnprivatejobs.tn.gov.in/" target="_blank">“Exclusive Government Portal for Private Jobs - Click here to
+                                        apply(Employers & Job seekers)”</a></div>
+                            </div>
+                        </div>
+
+			<div class="slide-item">
+                            <div class="inner">
+                                <div class="info clearfix">
+                                    <div class="name">PDL-251-July-2026</div>
+                                    <div class="designation"></div>
+                                </div>
+                                <!-- <div class="text"><a href="https://drive.google.com/file/d/1qboxMOq-l1bOIxTu9EoV0I9bfi3x7xRk/view?usp=shari$
+                                         target="_blank">"PDL-251-March-2026"</a></div> -->
+                                <div class="text"><a href="https://drive.google.com/file/d/1ZpKJfGjg-wUW7oQXaBEsRhP0jldaC7zz/view?usp=sharing"
+                                         target="_blank">"PDL-251-July-2026"</a></div>
+                            </div>
+                        </div>
+
+                        <div class="slide-item">
+                            <div class="inner">
+                                <div class="info clearfix">
+                                    <div class="name">Seniority cut-off dates</div>
+                                    <div class="designation"></div>
+                                </div>
+                                <div class="text"><a href="https://drive.google.com/file/d/18wBQXK8EWCGloGz-QMG7H3R_d46lZX_P/view?usp=sharing"
+                                         target="_blank">"Seniority cut-off dates for the month of June"</a></div>
+                            </div>
+                        </div>
+
+                        <div class="slide-item">
+                            <div class="inner">
+                                <div class="info clearfix">
+                                    <div class="name">Advertised Vacancies</div>
+                                    <div class="designation"></div>
+                                </div>
+                                <div class="text"><a href="https://drive.google.com/file/d/1uoJdcx_fKnQJf_OgARhcg7wSmaJeTsPV/view?usp=sharing"
+                                         target="_blank">"Advertised Vacancies"</a></div>
+                            </div>
+                        </div>
+
+                        <div class="slide-item">
+                            <div class="inner">
+                                <div class="info clearfix">
+                                    <div class="name">Apprenticeship Vacancies</div>
+                                    <div class="designation"></div>
+                                </div>
+                                <div class="text"><a href="https://drive.google.com/file/d/115FPCyZ00XEPUmA_d0tRNHU36rhOe0i1/view?usp=sharing"
+                                         target="_blank">"Apprenticeship Vacancies"</a></div>
+                            </div>
+                        </div>
+
+                        <div class="slide-item">
+                            <div class="inner">
+                                <div class="info clearfix">
+                                    <div class="name">Download and use the integrated mobile app "Thervukkalam" introduced by the Tamil Nadu government for competitive exam aspirants</div>
+                                    <div class="designation"></div>
+                                </div>
+                                <div class="text"><a href=""
+                                         target="_blank">"Download and use the integrated mobile app "Thervukkalam" introduced by the Tamil Nadu government for competitive exam aspirants"</a></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!--Team Section-->
+            <section class="team-section">
+                <div class="auto-container">
+                    <div class="sec-title with-separator centered">
+                        <h2>Our Services</h2>
+                        <div class="separator"><span class="cir c-1"></span><span class="cir c-2"></span><span class="cir c-3"></span></div>
+                    </div>
+
+                    <div class="team-carousel owl-theme owl-carousel">
+                        <div class="team-block">
+                            <div class="inner-box">
+                                <div class="image-box">
+                                    <figure class="image"><img src="images/promo5.jpg" alt=""></figure>
+                                    <div class="hover-box">
+                                        <div class="hover-inner">
+                                            <div class="hover-upper">
+                                                <div class="icon-box"><span class="flaticon-link"></span></div>
+                                                <h6>TNVelaivaaippu</h6>
+                                            </div>
+                                            <div class="hover-lower">
+                                                <ul class="info">
+                                                    <li><a href="https://tnvelaivaaippu.gov.in/Empower/" target="_blank">tnvelaivaaippu.gov.in</a></li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="team-block">
+                            <div class="inner-box">
+                                <div class="image-box">
+                                    <figure class="image"><img src="images/promo1.jpg" alt=""></figure>
+                                    <div class="hover-box">
+                                        <div class="hover-inner">
+                                            <div class="hover-upper">
+                                                <div class="icon-box"><span class="flaticon-link"></span></div>
+                                                <h6>Private Job Portal</h6>
+                                            </div>
+                                            <div class="hover-lower">
+                                                <ul class="info">
+                                                    <li><a href="https://www.tnprivatejobs.tn.gov.in" target="_blank">www.tnprivatejobs.tn.gov.in</a></li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="team-block">
+                            <div class="inner-box">
+                                <div class="image-box">
+                                    <figure class="image"><img src="images/promo2.jpg" alt=""></figure>
+                                    <div class="hover-box">
+                                        <div class="hover-inner">
+                                            <div class="hover-upper">
+                                                <div class="icon-box"><span class="flaticon-link"></span></div>
+                                                <h6>Career Services</h6>
+                                            </div>
+                                            <div class="hover-lower">
+                                                <ul class="info">
+                                                    <li><a href="https://tamilnaducareerservices.tn.gov.in" target="_blank">tamilnaducareerservices.tn.gov.in</a></li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="team-block">
+                            <div class="inner-box">
+                                <div class="image-box">
+                                    <figure class="image"><img src="images/promo3.jpg" alt=""></figure>
+                                    <div class="hover-box">
+                                        <div class="hover-inner">
+                                            <div class="hover-upper">
+                                                <div class="icon-box"><span class="flaticon-link"></span></div>
+                                                <h6>TNSDC</h6>
+                                            </div>
+                                            <div class="hover-lower">
+                                                <ul class="info">
+                                                    <li><a href="https://www.tnskill.tn.gov.in/" target="_blank">www.tnskill.tn.gov.in/</a></li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="team-block">
+                            <div class="inner-box">
+                                <div class="image-box">
+                                    <figure class="image"><img src="images/main-slider/overseasservice.png" alt=""></figure>
+                                    <div class="hover-box">
+                                        <div class="hover-inner">
+                                            <div class="hover-upper">
+                                                <div class="icon-box"><span class="flaticon-link"></span></div>
+                                                <h6>OMCL</h6>
+                                            </div>
+                                            <div class="hover-lower">
+                                                <ul class="info">
+                                                    <li><a href="https://www.omcmanpower.tn.gov.in" target="_blank">www.omcmanpower.tn.gov.in</a></li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+			            <div class="team-block">
+                            <div class="inner-box">
+                                <div class="image-box">
+                                    <figure class="image"><img src="images/main-slider/skilltraining.png" alt=""></figure>
+                                    <div class="hover-box">
+                                        <div class="hover-inner">
+                                            <div class="hover-upper">
+                                                <div class="icon-box"><span class="flaticon-link"></span></div>
+                                                <h6>Skill Training</h6>
+                                            </div>
+                                            <div class="hover-lower">
+                                                <ul class="info">
+                                                    <li><a href="https://www.skilltraining.tn.gov.in"
+                                                            target="_blank">https://www.skilltraining.tn.gov.in</a></li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="team-block">
+                            <div class="inner-box">
+                                <div class="image-box">
+                                    <figure class="image"><img src="images/promo6.jpg" alt=""></figure>
+                                    <div class="hover-box">
+                                        <div class="hover-inner">
+                                            <div class="hover-upper">
+                                                <div class="icon-box"><span class="flaticon-link"></span></div>
+                                                <h6>NCS</h6>
+                                            </div>
+                                            <div class="hover-lower">
+                                                <ul class="info">
+                                                    <li><a href="https://www.ncs.gov.in" target="_blank">www.ncs.gov.in</a></li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!--Contact Info Section-->
+            <section class="contact-info-section">
+                <div class="image-layer" style="background-image: url(images/background/image-5.jpg);"></div>
+                <div class="auto-container">
+                    <div class="info-outer clearfix">
+                        <!--Info Box-->
+                        <div class="info-box">
+                            <div class="inner">
+                                <div class="icon"><span class="flaticon-password"></span></div>
+                                <a href="docs.html" target="_blank"><strong>Grievances / Feedback / Help / Chat / Cyber
+                                        Incidents </strong><br /></a>
+                            </div>
+                        </div>
+                        <!--Info Box-->
+                        <div class="info-box">
+                            <div class="inner">
+                                <div class="icon"><span class="flaticon-people"></span></div>
+                                <!-- <a href="pdf/citizen_charter_english.pdf" target="_blank"><strong>Citizen<br />
+                                        Charter</strong></a><br /> -->
+				<a href="pdf/citizen_charter_eng.pdf" target="_blank"><strong>Citizen<br />
+                                        Charter</strong></a><br />
+                            </div>
+                        </div>
+                        <div class="info-box">
+                            <div class="inner">
+                                <div class="icon"><span class="flaticon-comment-1"></span></div>
+                                <a href="pdf/FAQ.pdf" target="_blank"><strong>Frequently Asked Questions</strong></a>
+                            </div>
+                        </div>
+                        <!--Info Box-->
+                        <div class="info-box">
+                            <div class="inner">
+                                <div class="icon"><span class="flaticon-video-camera"></span></div>
+                                <a href="https://www.youtube.com/watch?v=pHTMFLzR3Sc" target="_blank"><strong>User
+                                        Manual<br />Video</strong></a><br />
+                                <div class="info"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+
+			<!-- Corporate Office Section (NEWLY ADDED BEFORE FOOTER) -->
+<section class="corporate-office-section">
+    <div class="auto-container">
+        <!-- <h2 class="corp-title">"Bribe giving and receiving is an offence"</h2>
+        <h4 class="corp-sub-title">The complaints about corruption may be sent to</h4> -->
+        
+        <div class="row clearfix">
+
+            <!-- Tamil Address Column (Left Side) -->
+            <div class="col-lg-6 col-md-6 col-sm-12">
+                <div class="corp-info-block">
+                    <!-- <div class="corp-icon">
+                        <svg viewBox="0 0 24 24" fill="#FF4500" width="30" height="30">
+                            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                        </svg>
+                    </div> -->
+                    <div class="corp-details">
+			<h4 style="font-weight:800">“இலஞ்சம் வாங்குவதும், கொடுப்பதும் குற்றம்”</h4>
+			<h5 style="font-weight:600">ஊழல் குறித்த புகார்களை கீழ்க்கண்ட முகவரிக்கு அனுப்பவும்.</h5>
+                        <strong>ஊழல் தடுப்பு மற்றும் கண்காணிப்பு இயக்கம்,</strong><br />
+                        எண்.293, எம்.கே.என். சாலை,<br />
+                        ஆலந்தூர்,<br />
+                        சென்னை - 600 016.<br />
+                        தொலைபேசி: +91-44-2232 1090 / 2232 1085 / 2231 0989 / 2234 2142 <br />
+                        கைபேசி: <a href="https://wa.me/919498180936" target="_blank">94981 80936</a> (Whatsapp) <br />
+                        தொலைநகல்: 91-44-2232 1005 <br />
+                        மின்னஞ்சல்: <a href="mailto:dvac@nic.in">dvac@nic.in</a><br />
+                        இணைப்பு : <a href="https://www.dvac.tn.gov.in" target="_blank">https://www.dvac.tn.gov.in</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- English Address Column (Right Side) -->
+            <div class="col-lg-6 col-md-6 col-sm-12">
+                <div class="corp-info-block">
+                    <!-- <div class="corp-icon">
+                        <svg viewBox="0 0 24 24" fill="#FF4500" width="30" height="30">
+                            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                        </svg>
+                    </div> -->
+                    <div class="corp-details">
+			<h4 style="font-weight:800">"Bribe giving and receiving is an offence"</h4>
+                        <h5 style="font-weight:600">The complaints about corruption may be sent to</h5>
+			<strong>The Directorate of Vigilance and Anti-Corruption,</strong><br />
+                        No.293, MKN Road,<br />
+                        Alandur,<br />
+                        Chennai - 600 016.<br />
+                        Phone: +91-44-2232 1090 / 2232 1085 / 2231 0989 / 2234 2142 <br />
+                        Mobile: <a href="https://wa.me/919498180936" target="_blank">94981 80936</a> (Whatsapp) <br />
+                        Fax: 91-44-2232 1005 <br />
+                        E-mail: <a href="mailto:dvac@nic.in">dvac@nic.in</a><br />
+                        Website: <a href="https://www.dvac.tn.gov.in" target="_blank">https://www.dvac.tn.gov.in</a>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+                        <!-- Contact & Visitor Counter Column -->
+                        <!-- <div class="col-lg-5 col-md-12 col-sm-12"> -->
+                            <!-- Website -->
+                            <!-- <div class="corp-info-block"> -->
+                               <!-- <div class="corp-icon">
+                                    <svg viewBox="0 0 24 24" fill="#FF8C00" width="24" height="24">
+                                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+                                    </svg>
+                                </div> -->
+                               <!--  <div class="corp-details">
+                                    <a href="http://www.dvac.tn.gov.in" target="_blank">https://www.dvac.tn.gov.in</a>
+                                </div>
+                            </div> -->
+
+                            <!-- Phone numbers -->
+                            <!-- <div class="corp-info-block"> -->
+                                <!-- <div class="corp-icon">
+                                    <svg viewBox="0 0 24 24" fill="#FF8C00" width="24" height="24">
+                                        <path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/>
+                                    </svg>
+                                </div> -->
+                                <!-- <div class="corp-details">
+                                    Phone: +91-44-2232 1090/2232 1085/2231 0989/2234 2142
+                                </div>
+                            </div> -->
+
+			    <!-- Mobile numbers -->
+                           <!--  <div class="corp-info-block"> -->
+                                <!-- <div class="corp-icon">
+                                    <svg viewBox="0 0 24 24" fill="#FF8C00" width="24" height="24">
+                                        <path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.$
+                                    </svg>
+                                </div> -->
+                                <!-- <div class="corp-details">
+                                    Mobile: 94981 80936 (Whatsapp)
+                                </div>
+                            </div> -->
+
+			    <!-- FAX numbers -->
+                            <!-- <div class="corp-info-block"> -->
+                                <!-- <div class="corp-icon">
+                                    <svg viewBox="0 0 24 24" fill="#FF8C00" width="24" height="24">
+                                        <path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.$
+                                    </svg>
+                                </div> -->
+                              <!-- <div class="corp-details">
+                                    Fax: 91-44-2232 1005
+                                </div>
+                            </div> -->
+
+			   <!-- Email -->
+                            <!-- <div class="corp-info-block"> -->
+                                <!-- <div class="corp-icon">
+                                    <svg viewBox="0 0 24 24" fill="#FF8C00" width="24" height="24">
+                                        <path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.$
+                                    </svg>
+                                </div> -->
+                                <!-- <div class="corp-details">
+                                    Email: dvac@nic.in
+                                </div>
+                            </div> -->
+
+                            <!-- Visitor Counter -->
+                            <!-- <div class="corp-info-block align-items-center">
+                                <div class="corp-icon">
+                                    <svg viewBox="0 0 24 24" fill="#FF8C00" width="26" height="26">
+                                        <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/>
+                                    </svg>
+                                </div>
+                                <div class="corp-details">
+                                    <div class="counter-digits-container">
+                                        <span class="counter-digit">1</span>
+                                        <span class="counter-digit">0</span>
+                                        <span class="counter-digit">4</span>
+                                        <span class="counter-digit">2</span>
+                                        <span class="counter-digit">3</span>
+                                        <span class="counter-digit">9</span>
+                                        <span class="counter-digit">9</span>
+                                        <span class="counter-digit">0</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div> -->
+          <!--      </div>
+            </section> -->
+
+            <!-- Main Footer -->
+            <div w3-include-html="footer_eng.html"></div>
+
+        </div>
+    </div>
+    <!--End pagewrapper-->
+
+    <!--Scroll to top-->
+    <div class="scroll-to-top scroll-to-target" data-target="html"><span class="icon flaticon-up-arrow-angle"></span>
+    </div>
+
+    <script src="js/jquery.js"></script>
+    <script src="js/popper.min.js"></script>
+    <script src="js/bootstrap.min.js"></script>
+    <script src="js/jquery-ui.js"></script>
+    <script src="js/jquery.fancybox.js"></script>
+    <script src="js/owl.js"></script>
+    <script src="js/scrollbar.js"></script>
+    <script src="js/appear.js"></script>
+    <script src="js/wow.js"></script>
+    <script src="js/custom-script.js"></script>
+    <script>
+        $(document).ready(function() {
+            $('[data-toggle="tooltip"]').tooltip();
+        });
+    </script>
+    <script src="js/w3script.js"></script>
+
+    <!-- Warning Popup Modal -->
+    <div class="modal fade" id="warningModal" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document" style="max-width:560px;">
+            <div class="modal-content" style="background-color:#f5f2e9;border-radius:10px;overflow:hidden;border:none;">
+
+                <!-- Header -->
+                <div class="modal-header" style="background:#314443;padding:0;border:none;">
+                    <div style="display:flex;align-items:center;width:100%;">
+                        <div style="background:#ffffff;padding:6px 12px;">
+                            <img src="https://www.tnprivatejobs.tn.gov.in/asset/images/TN-Emblem.png" alt="Tamil Nadu Logo" style="width:80px;">
+                        </div>
+                        <div style="padding-left:15px;">
+                            <h4 style="color:#ffffff;margin:0;font-weight:700;font-size:25px;line-height:28px;">
+                             Beware of Misleading Communication   
+                            </h4>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Body -->
+                <div class="modal-body" style="padding:18px;">
+                    <div style="font-size:14px;line-height:20px;color:#333333;font-weight:600;text-align:justify;">
+                        District Employment and Professional Guidance Centres provide free of cost to all jobs including employment registration, renewal of registration, scholarship for unemployed youth, additional registration, change of address etc.
+                        <br><br>Further, all the above services have been facilitated by the applicants through the website <span style="color:#0b7d3b;font-weight:700;">www.tnvelaivaaippu.gov.in</span>
+                        <br><br>Therefore, the public should not cheat on fake advertisements or intermediaries by giving personal information or money.
+                        <br><br>
+                        <li class="text-center" style="font-weight: 500;">
+                          If any such communication is received, please reach out to the helpline or control room
+                        </li>
+                        <br>
+                        <li style="background:#fa7d03;height:40px;padding:10px;border-radius:4px;text-align:center;font-size:18px;font-weight:600;color:#fff;margin-top:5px;">
+                          <i class="fa fa-phone mr-2" style="transform: rotate(90deg);"></i>
+                          <span style="margin-left:3px;">044-29580200</span> <i class="fa fa-bot"></i>| 1930 (Cyber Crime)
+                        </li>
+                    </div>
+                </div>
+
+                <!-- Footer -->
+                <div class="modal-footer" style="background:#314443;border:none;justify-content:center;padding:15px;">
+                    <button type="button" class="btn btn-primary" data-dismiss="modal" style="background:#0077BE;border:none;padding:8px 22px;font-size:14px;font-weight:600;border-radius:5px;">
+                        Okay, Got it
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        $(window).on('load', function () {
+            $('#warningModal').modal('show');
+        });
+    </script>
+
+</body>
+
+<script type="text/javascript">
+    function co_signup_disclaimer() {
+        $('#signup_popco').modal();
+    }
+</script>
+
+</html>

@@ -1,0 +1,15 @@
+{
+  "source": "pudhumai_penn",
+  "sourceId": "pudhumai_penn",
+  "name": "Moovalur Ramamirtham Ammaiyar Higher Education Assurance Scheme",
+  "url": "https://tnsocialwelfare.tn.gov.in/pudhumai-penn",
+  "baselineCompleteness": 90,
+  "selectors": {
+    "title": "h1, h2",
+    "benefit": ".benefit, p"
+  },
+  "fields": {
+    "amount": { "pattern": "₹?\\s*1[,.]000" },
+    "gender": "F"
+  }
+}

@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'scheme.dart';
 
 class UserProfile {
   // Section 1: Personal details
@@ -12,10 +11,15 @@ class UserProfile {
 
   // Section 2: Family
   String? marital; // unmarried, married, widowed, deserted, prefer_not_to_say
-  // Married follow-ups
+  // Married / pregnancy follow-ups
   bool? spouseLivingWith;
   int? childrenCount;
   bool? daughterUnder18;
+  bool? isPregnant; // Are you currently pregnant?
+  bool? hasNewborn; // Have you recently given birth (child aged 0-1 year)?
+  String? deliveryPlace; // Government Hospital, Private Hospital, Home / Other
+  bool? interestedInLoan; // Interested in applying for a loan? (Asked if married)
+  String? loanType; // Jewel loan, Land / Mortgage loan, Two-wheeler loan, Consumer durable loan, Business loan
   // Widowed follow-ups
   bool? deathCertAvailable;
   bool? familyPension;
@@ -25,7 +29,9 @@ class UserProfile {
   // Unmarried age 50+ follow-up
   bool? unmarriedFamilySupport;
 
-  bool famhead; // Head of family on ration card
+  bool famhead; // Legacy: Head of family on ration card
+  String? rationCardHead; // self, spouse, other, none, unknown
+  bool? isTnResident; // Permanent resident of Tamil Nadu?
   String? rationCardType; // PHH, PHH-AAY, NPHH, No ration card, Not sure
   int? familyMembersCount;
 
@@ -48,6 +54,10 @@ class UserProfile {
   String? pensionSystem; // CPS, EPF, Old Pension Scheme, None
   int? ownIncome;
   String? farmerType; // Own land, Tenant, Landless labourer
+  bool? isFarming; // Currently actively farming / cultivating crops?
+  List<String> cropsCultivated; // Oil seeds, Paddy, Pulses, Groundnut, Cotton, Sugarcane, Millets, Horticulture
+  bool isManufacturer; // Owns or runs MSME / Manufacturing enterprise
+  String? enterpriseType; // Micro, Small, Medium, None
   List<String> expenseSources; // Spouse's income, Children's income, Pension, Rent, Farming, Savings interest, Money from relatives, None
   int? otherIncome;
   String? retiredFrom; // Government, Private, Other
@@ -73,6 +83,8 @@ class UserProfile {
   // Section 6: Health
   int disability; // 0-100
   bool? disabilityCertAvailable;
+  bool hasEyeProblem; // Eye sight problem / requires spectacles / cataract
+  List<String> healthConditions; // e.g. 'Eye / Vision problem', 'Cancer', 'Kidney / Dialysis', 'Heart disease', 'TB', 'None'
 
   // Section 7: Additional details
   bool destitute;
@@ -90,12 +102,19 @@ class UserProfile {
     this.spouseLivingWith,
     this.childrenCount,
     this.daughterUnder18,
+    this.isPregnant,
+    this.hasNewborn,
+    this.deliveryPlace,
+    this.interestedInLoan,
+    this.loanType,
     this.deathCertAvailable,
     this.familyPension,
     this.depChildrenCount,
     this.separatedYears,
     this.unmarriedFamilySupport,
     this.famhead = false,
+    this.rationCardHead,
+    this.isTnResident,
     this.rationCardType,
     this.familyMembersCount,
     this.role,
@@ -114,6 +133,10 @@ class UserProfile {
     this.pensionSystem,
     this.ownIncome,
     this.farmerType,
+    this.isFarming,
+    List<String>? cropsCultivated,
+    this.isManufacturer = false,
+    this.enterpriseType,
     List<String>? expenseSources,
     this.otherIncome,
     this.retiredFrom,
@@ -133,11 +156,27 @@ class UserProfile {
     this.fixedAssetsBand,
     this.disability = 0,
     this.disabilityCertAvailable,
+    this.hasEyeProblem = false,
+    List<String>? healthConditions,
     this.destitute = false,
     this.bplFamily = false,
     this.agriLabourer = false,
     this.welfareBoard = false,
-  }) : expenseSources = expenseSources ?? [];
+  })  : cropsCultivated = cropsCultivated ?? [],
+        expenseSources = expenseSources ?? [],
+        healthConditions = healthConditions ?? [] {
+    // Derive "self" automatically for unmarried, widowed or deserted women who say they head their household
+    if (rationCardHead == null) {
+      if (famhead) {
+        rationCardHead = 'self';
+      }
+    }
+    if (role == 'College student' || role == 'Higher studies') {
+      highered = true;
+    } else if (role == 'Completed studies' || role == 'Not studying') {
+      highered = false;
+    }
+  }
 
   // Backward compatibility getter for `income`
   int? get income => familyIncome;
@@ -154,12 +193,19 @@ class UserProfile {
       'spouse_living_with': spouseLivingWith,
       'children_count': childrenCount,
       'daughter_under_18': daughterUnder18,
+      'is_pregnant': isPregnant,
+      'has_newborn': hasNewborn,
+      'delivery_place': deliveryPlace,
+      'interested_in_loan': interestedInLoan,
+      'loan_type': loanType,
       'death_cert_available': deathCertAvailable,
       'family_pension': familyPension,
       'dep_children_count': depChildrenCount,
       'separated_years': separatedYears,
       'unmarried_family_support': unmarriedFamilySupport,
-      'famhead': famhead,
+      'famhead': famhead || rationCardHead == 'self',
+      'ration_card_head': rationCardHead,
+      'is_tn_resident': isTnResident,
       'ration_card_type': rationCardType,
       'family_members_count': familyMembersCount,
       'role': role,
@@ -178,6 +224,10 @@ class UserProfile {
       'pension_system': pensionSystem,
       'own_income': ownIncome,
       'farmer_type': farmerType,
+      'is_farming': isFarming,
+      'crops_cultivated': cropsCultivated,
+      'is_manufacturer': isManufacturer,
+      'enterprise_type': enterpriseType,
       'expense_sources': expenseSources,
       'other_income': otherIncome,
       'retired_from': retiredFrom,
@@ -198,6 +248,8 @@ class UserProfile {
       'fixed_assets_band': fixedAssetsBand,
       'disability': disability,
       'disability_cert_available': disabilityCertAvailable,
+      'has_eye_problem': hasEyeProblem,
+      'health_conditions': healthConditions,
       'destitute': destitute,
       'bpl_family': bplFamily,
       'agri_labourer': agriLabourer,
@@ -236,6 +288,16 @@ class UserProfile {
       }
     }
 
+    List<String> parsedHealthConditions = [];
+    if (json['health_conditions'] != null && json['health_conditions'] is List) {
+      parsedHealthConditions = (json['health_conditions'] as List).map((e) => e.toString()).toList();
+    }
+
+    List<String> parsedCrops = [];
+    if (json['crops_cultivated'] != null && json['crops_cultivated'] is List) {
+      parsedCrops = (json['crops_cultivated'] as List).map((e) => e.toString()).toList();
+    }
+
     return UserProfile(
       age: parsedAge,
       gender: json['gender'] ?? 'F',
@@ -246,12 +308,19 @@ class UserProfile {
       spouseLivingWith: parseBool(json['spouse_living_with']),
       childrenCount: parseInt(json['children_count']),
       daughterUnder18: parseBool(json['daughter_under_18']),
+      isPregnant: parseBool(json['is_pregnant']),
+      hasNewborn: parseBool(json['has_newborn']),
+      deliveryPlace: json['delivery_place'],
+      interestedInLoan: parseBool(json['interested_in_loan']),
+      loanType: json['loan_type'],
       deathCertAvailable: parseBool(json['death_cert_available']),
       familyPension: parseBool(json['family_pension']),
       depChildrenCount: parseInt(json['dep_children_count']),
       separatedYears: json['separated_years'],
       unmarriedFamilySupport: parseBool(json['unmarried_family_support']),
       famhead: parseBool(json['famhead']) ?? false,
+      rationCardHead: json['ration_card_head'] ?? json['rationCardHead'] ?? (parseBool(json['famhead']) == true ? 'self' : null),
+      isTnResident: parseBool(json['is_tn_resident'] ?? json['isTnResident']),
       rationCardType: json['ration_card_type'],
       familyMembersCount: parseInt(json['family_members_count']),
       role: json['role'],
@@ -268,6 +337,10 @@ class UserProfile {
       employmentSector: json['employment_sector'],
       ownIncome: parseInt(json['own_income']),
       farmerType: json['farmer_type'],
+      isFarming: parseBool(json['is_farming']),
+      cropsCultivated: parsedCrops,
+      isManufacturer: parseBool(json['is_manufacturer']) ?? false,
+      enterpriseType: json['enterprise_type'],
       expenseSources: parsedExpenses,
       otherIncome: parseInt(json['other_income']),
       retiredFrom: json['retired_from'],
@@ -287,6 +360,8 @@ class UserProfile {
       fixedAssetsBand: json['fixed_assets_band'],
       disability: parseInt(json['disability']) ?? 0,
       disabilityCertAvailable: parseBool(json['disability_cert_available']),
+      hasEyeProblem: parseBool(json['has_eye_problem']) ?? false,
+      healthConditions: parsedHealthConditions,
       destitute: parseBool(json['destitute']) ?? false,
       bplFamily: parseBool(json['bpl_family']) ?? false,
       agriLabourer: parseBool(json['agri_labourer']) ?? false,
@@ -322,8 +397,10 @@ class UserProfile {
         'workStatus': workStatus,
         'retiredFrom': retiredFrom,
         'receivesPension': receivesPension,
+        'rationCardHead': rationCardHead,
+        'isTnResident': isTnResident,
         'flags': {
-          'famhead': famhead,
+          'famhead': famhead || rationCardHead == 'self',
           'govschool': govschool,
           'highered': highered,
           'destitute': destitute,
@@ -350,7 +427,7 @@ class UserProfile {
 
     int s2Filled = 0, s2Total = 4;
     if (marital != null && marital!.isNotEmpty) s2Filled++;
-    if (famhead) s2Filled++; // counts as answered/filled
+    if (rationCardHead != null && rationCardHead!.isNotEmpty || famhead) s2Filled++; // counts as answered/filled
     if (rationCardType != null && rationCardType!.isNotEmpty) s2Filled++;
     if (familyMembersCount != null) s2Filled++;
 

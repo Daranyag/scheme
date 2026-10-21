@@ -1,32 +1,81 @@
+const CriteriaParser = require('./CriteriaParser');
+const {
+  extractAmounts,
+  extractAges,
+  extractDates,
+  extractGoNumbers
+} = require('./fieldExtractors');
+
 class PdfAdapter {
   constructor(pdfText, url) {
-    this.pdfText = pdfText;
-    this.url = url;
+    this.pdfText = pdfText || '';
+    this.url = url || '';
+    this.criteriaParser = new CriteriaParser();
   }
 
-  // Simulated logic to extract fields from G.O. PDF text
   extractFields() {
-    const textLower = this.pdfText.toLowerCase();
+    const facts = [];
     const result = {
       goNumber: null,
       date: null,
-      benefit: 'Government benefit from PDF'
+      benefit: null,
+      eligibilityRules: {},
+      facts: []
     };
 
-    const goMatch = textLower.match(/g\.o\.\s*\(ms\)\s*no\.?\s*(\d+)/i);
-    if (goMatch) {
-      result.goNumber = goMatch[1];
+    if (!this.pdfText) return result;
+
+    // 1. GO Numbers
+    const gos = extractGoNumbers(this.pdfText);
+    if (gos.length > 0) {
+      result.goNumber = gos[0].value;
+      gos.forEach(g => {
+        facts.push({
+          field: 'goNumber',
+          value: g.value,
+          quote: g.quote,
+          extractedBy: 'regex',
+          confidence: 0.95
+        });
+      });
     }
 
-    const dateMatch = textLower.match(/dated\s*:?\s*(\d{1,2}[\.\-\/]\d{1,2}[\.\-\/]\d{2,4})/i);
-    if (dateMatch) {
-      result.date = dateMatch[1];
+    // 2. Dates
+    const dates = extractDates(this.pdfText);
+    if (dates.length > 0) {
+      result.date = dates[0].value;
+      dates.forEach(d => {
+        facts.push({
+          field: 'goDate',
+          value: d.value,
+          quote: d.quote,
+          extractedBy: 'regex',
+          confidence: 0.90
+        });
+      });
     }
 
-    if (textLower.includes('rs.') || textLower.includes('₹')) {
-       result.benefit = 'Monetary benefit found in PDF order';
+    // 3. Amounts / Benefits
+    const amounts = extractAmounts(this.pdfText);
+    if (amounts.length > 0) {
+      result.benefit = amounts[0].display;
+      amounts.forEach(a => {
+        facts.push({
+          field: 'amount',
+          value: a.value,
+          quote: a.quote,
+          extractedBy: 'regex',
+          confidence: 0.95
+        });
+      });
     }
 
+    // 4. Criteria
+    const parsedCriteria = this.criteriaParser.parse(this.pdfText);
+    result.eligibilityRules = parsedCriteria.rules;
+    parsedCriteria.facts.forEach(f => facts.push(f));
+
+    result.facts = facts;
     return result;
   }
 }
