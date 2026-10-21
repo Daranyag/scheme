@@ -173,7 +173,7 @@ class MyApp extends StatelessWidget {
                     child: CircularProgressIndicator(),
                   ),
                 )
-              : (!authProvider.isAuthenticated && !authProvider.guestChoiceSaved)
+              : !authProvider.isAuthenticated
                   ? const WelcomeScreen()
                   : const MainScreen(),
         );

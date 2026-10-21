@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mobile_app/main.dart';
 import 'package:mobile_app/providers/auth_provider.dart';
 import 'package:mobile_app/providers/language_provider.dart';
+import 'package:mobile_app/services/token_storage_service.dart';
 
 import 'package:flutter/services.dart';
 
@@ -17,10 +18,11 @@ void main() {
     });
   });
 
-  testWidgets('App loads MainScreen with navigation tabs when guest choice saved', (WidgetTester tester) async {
-    SharedPreferences.setMockInitialValues({'guest_choice_saved': true});
-
+  testWidgets('App loads MainScreen with navigation tabs when authenticated', (WidgetTester tester) async {
     final authProvider = AuthProvider();
+    await authProvider.init();
+    // Simulate active login so MainScreen loads
+    await TokenStorageService.saveTokens(accessToken: 'mock_token', refreshToken: 'mock_refresh');
     await authProvider.init();
 
     await tester.pumpWidget(
