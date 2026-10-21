@@ -38,7 +38,7 @@ class MyApp extends StatelessWidget {
     return Consumer<AuthProvider>(
       builder: (context, authProvider, child) {
         return MaterialApp(
-          title: 'TN Schemes & Pensions Finder',
+          title: 'Thittam - TN Schemes & Pensions Finder',
           debugShowCheckedModeBanner: false,
           theme: ThemeData(
             useMaterial3: true,
